@@ -1,6 +1,7 @@
 #lang scribble/manual
 
 @title{Logical Student Language}
+
 @author{Andrey Piterkin}
 @author{Luke Jianu}
 
@@ -20,7 +21,12 @@ signatures, and purpose statements in code. We call these bits of code
 satisfies these formal specifications (contracts) using a testing technique
 called @italic{property-based testing}.
 
-@section{Concepts} There are two core concepts in LSL: contracts and
+This project is a re-implementation of LSL. The goal of the rewrite is
+to simplify the implementation, as well as improving the static checks.
+
+@section{Concepts}
+
+There are two core concepts in LSL: contracts and
 property-based testing (PBT).
 
 A contract is a claim about a value or its behavior. A contract is a piece of
