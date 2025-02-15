@@ -3,21 +3,6 @@
 @title{Logical Student Language}
 @author{Andrey Piterkin}
 @author{Luke Jianu}
- 
-@section{TODOs}
-@margin-note{If you give a mouse a cookie, he's going to ask for a
-glass of milk.
- }
-What is the purpose of the DSL you propose? What are the concepts in the domain, how do they map to
-linguistic features, and what computation arises from them?
-
-Examples of programs in your DSL.
-
-Grammars (for macros) and signatures (for functions) for the syntax of your DSL, together with
-brief purpose statements. If your DSL is large, you can present a subset in-class and provide the full specification in your design document.
-
-Implementation milestones, breaking down the work in a sensible order. Depending on your DSL, it might
-make most sense to work bottom-up, starting from runtime support and layering syntax on top. Or, it might make sense to start from the syntax of your DSL and work down towards the runtime.
 
 @section{Purpose}
 
@@ -42,13 +27,44 @@ PBT is XYZ.
 
 @section{Examples}
 
-1. Data definition in code.
+@larger{Data Definitions as Code}
+@codeblock{
+(define-struct leaf [value])
+(define-struct node [left right])
+(define-contract (Leaf X) (Struct leaf [X]))
+(define-contract (Node X Y) (Struct node [X Y]))
+(define-contract (Tree X) (OneOf (Leaf X) (Node (Tree X) (Tree X))))
+}
 
-2. Signature in code.
+@larger{Signatures as Code}
+@codeblock{
+(: height (-> IntTree Natural))
+(define (height t)
+  (cond [(leaf? t) 0]
+        [(node? t) (add1 (max (height (node-left t)) (height (node-right t))))]))
+}
 
-3. Purpose statement in code.
+@larger{Purpose Statements as Code}
+@codeblock{
+(: subsets (Function (arguments [n Natural])
+                     (result (AllOf (List (List Natural))
+                                    (lambda (l) (= (length l) (expt 2 n)))))))
+(define (subsets n) ...)
+}
 
-4. XYZ.
+@larger{Property-based Testing}
+@codeblock{
+(: height-rec-prop (-> IntTree True))
+(define (height-rec-prop t)
+  (and (equal? (add1 (height t))
+               (height (make-node t (make-leaf 0))))
+       (equal? (add1 (height t))
+               (height (make-node (make-leaf 0) t)))))
+
+(check-contract height-rec-prop)
+}
+
+
 
 @section{Grammars and Signatures}
 
