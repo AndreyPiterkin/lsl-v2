@@ -23,7 +23,7 @@ There are two core concepts in LSL: contracts and property-based testing (PBT).
 
 A contract is a claim about a value or its behavior.
 
-PBT is XYZ.
+PBT is a testing technique.
 
 @section{Examples}
 
