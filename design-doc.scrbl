@@ -6,24 +6,37 @@
 
 @section{Purpose}
 
-The Logical Student Language is a simple extension to ISL+ that allows
-students to practice writing formal specifications.
+The Logical Student Language is a simple extension to ISL+ that allows students
+to practice writing formal specifications.
 
 In HtDP, students write informal specifications for their programs. Students
-describe new forms of data by writing data definitions, and describe
-the behavior of functions with signatures and purpose statements, as comments.
+describe new forms of data by writing data definitions, and describe the
+behavior of functions with signatures and purpose statements, as comments.
 
-In contrast, a formal specification is written as code, and therefore is formal in the sense
-that it's unambiguous. LSL supports writing data definitions, signatures, and purpose statements
-in code. We call these bits of code @italic{contracts}. In addition, students can determine whether
-their code satisfies these formal specifications (contracts) using a testing technique called @italic{property-based testing}.
+In contrast, a formal specification is written as code, and therefore is formal
+in the sense that it's unambiguous. LSL supports writing data definitions,
+signatures, and purpose statements in code. We call these bits of code
+@italic{contracts}. In addition, students can determine whether their code
+satisfies these formal specifications (contracts) using a testing technique
+called @italic{property-based testing}.
 
-@section{Concepts}
-There are two core concepts in LSL: contracts and property-based testing (PBT).
+@section{Concepts} There are two core concepts in LSL: contracts and
+property-based testing (PBT).
 
-A contract is a claim about a value or its behavior.
+A contract is a claim about a value or its behavior. A contract is a piece of
+data, in the sense that users can create new kinds of contracts. A contract
+could be simply represented by a Racket predicate.
 
-PBT is a testing technique.
+PBT is a testing technique where a user writes @italic{properties} about how
+their programs should behave; the property is then checked over a large number
+of randomly generated inputs.  For example, a user might want to express the
+commutative property of arithmetic addition. They could do so by writing a
+function @code{addition-property} that accepts two numbers @code{x}, @code{y}
+and checks that @code{(+ x y)} is the same as @code{(+ y x)}. The PBT library
+could then be invoked on @code{addition-property}, checking the property holds
+for many numbers @code{x}, @code{y}. PBT is typically represented by a special
+function that inititiates PBT on a particular property with some configuration
+(number of inputs to generate, how complex the inputs should be).
 
 @section{Examples}
 
@@ -63,8 +76,6 @@ PBT is a testing technique.
 
 (check-contract height-rec-prop)
 }
-
-
 
 @section{Grammars and Signatures}
 
@@ -114,11 +125,13 @@ LSL defines the following core forms on top of those provided by ISL+.
                 | <natural>
 }
 
-These core forms provide the capability to define and compose contracts, to annotate values with
-contracts, and to check contracts with property-based testing.
+These core forms provide the capability to define and compose contracts, to
+annotate values with contracts, and to check contracts with property-based
+testing.
 
-In addition to core forms, LSL provides atomic contracts and various derived forms, which
-reduce the burden on students to implement these contracts themselves.
+In addition to core forms, LSL provides atomic contracts and various derived
+forms, which reduce the burden on students to implement these contracts
+themselves.
 
 @codeblock{
 <contract> := ...
