@@ -171,3 +171,8 @@ To implement the re-write of LSL, we plan on working bottom-up:
 5. Provide ordinary functionality from ISL+
 
 6. Implement syntax transformations and static checking.
+
+Given that LSL-v1 is already implemented, we will be extracting the core features, interfaces,
+and specification from the existing project. Once we are confident we have understood the
+existing design, we will re-implement the language, first at the runtime level,
+then using syntax-spec. 
