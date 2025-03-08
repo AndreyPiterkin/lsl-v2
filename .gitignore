@@ -2,3 +2,7 @@ docs/*.css
 docs/*.js
 docs/*.html
 docs/*.scrbl~
+
+**/.DS_Store
+**/*.rkt~
+**/compiled/*
