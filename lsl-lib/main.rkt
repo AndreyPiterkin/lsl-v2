@@ -2,7 +2,8 @@
 
 (require "private/syntax/spec.rkt")
 
-(define-contract Even integer?)
+(define-contract Even even?)
 
 (: x Even)
-(define-protected x 5)
+(define x 4)
+

@@ -9,26 +9,22 @@
           "../util.rkt")
          syntax/parse)
 
-(define (compile-contract stx)
-  (define quoted-stx #`#'#,stx)
+;; TODO: not sure why syntax-property doesn't work on host-interface expressions, so compile-contract
+;; currently takes a second arg for the original unexpanded version
+(define (compile-contract stx srcloc)
+  (define stx^ (syntax-property (datum->syntax stx (syntax-e stx) srcloc stx) 'unexpanded srcloc))
+  (define quoted-stx #`#'#,stx^)
   (syntax-parse stx
-    #:datum-literals (#%host-expression #%ctc-expanded Immediate check generate shrink)
-    [(#%ctc-expanded Immediate (check pred:expr)
-                     (generate g:expr)
-                     (shrink shr:expr)
-                     (feature feat-name:string feat:expr) ...)
+    #:datum-literals (Immediate check generate shrink)
+    [(Immediate (check pred:expr)
+                (generate g:expr)
+                (shrink shr:expr)
+                (feature feat-name:string feat:expr) ...)
      #`(new immediate%
             [stx #,quoted-stx] 
             [check pred]
             [gen g]
             [shrink shr]
             [features (list (cons feat-name feat) ...)])]
-    [(#%host-expression e:expr)
-     #`(new immediate%
-            [stx #,quoted-stx] 
-            [check e]
-            [gen #f]
-            [shrink #f])]
-    [i:id
-     #'i]))
+    [i:id stx^]))
 
