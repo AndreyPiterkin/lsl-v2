@@ -1,6 +1,6 @@
 #lang lsl-v2
 
-(define-contract Even even?)
+(define-contract Even (Immediate (check even?)))
 
-(: x even?)
+(: x Even)
 (define x 5)

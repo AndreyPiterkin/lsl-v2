@@ -5,8 +5,9 @@
           racket/base
           racket/class
           "../runtime/immediate.rkt"
+          "../runtime/contract-common.rkt"
           "../util.rkt"
-          racket/require)
+          syntax/location)
          
          syntax/parse
          "grammar.rkt")
@@ -18,16 +19,20 @@
   (syntax-parse stx
     #:datum-literals (Immediate check generate shrink)
     [(Immediate (check pred:expr)
-                (generate g:expr)
-                (shrink shr:expr)
-                (feature feat-name:string feat:expr) ...)
+                #;(generate g:expr)
+                #;(shrink shr:expr)
+                #;(feature feat-name:string feat:expr) #;...)
      #`(new immediate%
             [stx #,quoted-stx] 
             [check pred]
-            [gen g]
-            [shrink shr]
-            [features (list (cons feat-name feat) ...)])]
-    [i:id stx]))
+            #;[gen g]
+            #;[shrink shr]
+            #;[features (list (cons feat-name feat) ...)])]
+    [i:id
+     ;; TODO: somewhere along the way tag unexpanded stx
+     (if (contract? #'i)
+         stx
+         (compile-contract #'(Immediate (check i))))]))
 
 (define (compile-lsl stx)
   (syntax-parse stx
@@ -44,7 +49,6 @@
     [(let* (e ...) body) #'(let* (e ...) body)]
     [(letrec (e ...) body) #'(letrec (e ...) body)]
     [(local (e ...) body) #'(local (e ...) body)]
-    [(require e) #'(require e)]
     [(define/i v b)
      (define maybe-ctc (contract-table-ref #'v))
      (if maybe-ctc
@@ -56,9 +60,9 @@
        (raise-syntax-error (syntax-e #'v) (format "contract previously declared for ~a" (syntax-e #'v)) maybe-ctc))
 
      (define compiled-ctc (compile-contract #'ctc))
-     (println compiled-ctc)
      (contract-table-set! #'v compiled-ctc)
      #'(void)]
     [(define-contract name contract)
+     (contract-add! #'name)
      #`(define name #,(compile-contract #'contract))]))
 

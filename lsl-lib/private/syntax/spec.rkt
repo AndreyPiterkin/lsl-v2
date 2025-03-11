@@ -3,8 +3,7 @@
 (require syntax-spec-v3
          (for-syntax syntax/parse
                      "compile.rkt"
-                     syntax/stx)
-         racket/block)
+                     syntax/stx))
 
 (provide (all-defined-out)
          (for-space ctc (all-defined-out))
@@ -57,8 +56,8 @@
 
 
   ;; TODO: probably also want implicit begin positions in function bodies, maybe as a macro?
-  (lambda (v:lsl-nt ...) b:lsl-expr)
-  #:binding (scope (bind v) ... b)
+  (lambda (v:lsl-nt ...) e:lsl-def-or-expr ... b:lsl-expr)
+  #:binding (scope (bind v) ... (import e) ... b)
 
   (let ([v:lsl-nt e:lsl-expr] ...)
     b:lsl-expr)
@@ -85,22 +84,25 @@
   [v:lsl-nt e:lsl-expr]
   #:binding (scope (bind v) e hole))
 
+ ;; TODO: I removed the local case since I wasn't sure how to handle it--maybe that's a macro
+
  (nonterminal
   ctc
   #:description "contract"
   #:binding-space ctc
   ((~datum Immediate) ((~datum check) pred:lsl-expr)
-                      ((~datum generate) gen:lsl-expr)
-                      ((~datum shrink) shrk:lsl-expr)
-                      ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
-  e:lsl-expr
-  c:ctc-nt)
+                      #;((~datum generate) gen:lsl-expr)
+                      #;((~datum shrink) shrk:lsl-expr)
+                      #;((~datum feature) feat-name:lsl-expr feat:lsl-expr) #;...)
+  c:ctc-nt
+  e:lsl-expr)
 
  (host-interface/definitions
   (#%lsl e:lsl-def-or-expr ...)
   #:binding ((re-export e) ...)
-   #`(begin #,@(map compile-lsl (attribute e)))))
+  #`(begin #,@(map compile-lsl (attribute e)))))
 
+;; not great
 (define-dsl-syntax define lsl-macro
   (lambda (stx)
     (syntax-parse stx
