@@ -1,108 +1,152 @@
 #lang racket
 
 (require syntax-spec-v3
-         "../util.rkt"
-         "../runtime/contract-common.rkt"
-         syntax/location
          (for-syntax syntax/parse
                      "compile.rkt"
-                     "../util.rkt"
-                     syntax/stx))
+                     syntax/stx)
+         racket/block)
 
 (provide (all-defined-out)
          (for-space ctc (all-defined-out))
+         (for-space lsl (all-defined-out))
          (for-syntax (all-defined-out)))
 
 (syntax-spec
  (binding-class ctc-nt #:description "contract binding")
- (extension-class ctc-macro)
+ (binding-class lsl-nt #:description "lsl binding")
+ (extension-class lsl-macro)
 
- (nonterminal ctc
-              #:description "contract"
-              #:binding-space ctc
-              #:allow-extension ctc-macro
-              ((~datum Immediate) ((~datum check) pred:racket-expr)
-                                  ((~datum generate) gen:racket-expr)
-                                  ((~datum shrink) shrk:racket-expr)
-                                  ((~datum feature) feat-name:string feat:racket-expr) ...)
-              ;; TODO: other contract forms
-              id:ctc-nt)
+ (nonterminal/nesting
+  lsl-form (hole)
+  #:description "lsl form"
+  #:binding-space lsl
+  c:ctc-def
+  #:binding (nest c hole)
+                  
+  e:lsl-expr+def
+  #:binding (nest e hole))
 
- ;; TODO: is there a point compiling the contract here? the version in the contract-table
- ;; is the version compiled in :/internal
- (host-interface/definition
-  (define-contract/internal c:ctc-nt contract-body:ctc unexpanded:expr)
-  #:binding (export c)
-  #:lhs [#'c]
-  #:rhs [(compile-contract #'contract-body #'unexpanded)])
+ (nonterminal/nesting
+  lsl-expr+def (hole)
+  #:description "lsl definition or expression"
+  #:binding-space lsl
+  #:allow-extension lsl-macro
+  e:lsl-expr
+  l:lsl-def
+  #:binding (nest l hole))
 
- (host-interface/definition
-  (define-protected v:racket-var b:racket-expr)
-  #:binding (export v)
-  #:lhs [#'v]
-  #:rhs [(define maybe-ctc (contract-table-ref #'v))
-         (if maybe-ctc
-             #`((send #,maybe-ctc protect b (positive-blame 'v (quote-module-name))) b (negative-blame 'v (quote-module-name)))
-             #'b)])
+ (nonterminal/nesting
+  lsl-def (hole)
+  #:description "lsl definition"
+  #:binding-space lsl
+  #:allow-extension lsl-macro
+  (define/i v:lsl-nt e:lsl-expr)
+  #:binding (scope (bind v) hole))
 
+ (nonterminal
+  lsl-expr
+  #:description "lsl expression"
+  #:binding-space lsl
+  n:number
+  s:string
+  b:boolean
+  id:lsl-nt
+
+  (and e:lsl-expr ...)
+  (or e:lsl-expr ...)
+  (~datum ..)
+  (~datum ...)
+  (~datum ....)
+  (cond [c:lsl-expr e:lsl-expr] ...
+        [(~datum else) else:lsl-expr])
+  (if c:lsl-expr
+      t:lsl-expr
+      e:lsl-expr)
+  (quote e:lsl-expr)
+  
+  (begin e:lsl-expr+def ... last:lsl-expr)
+  #:binding (nest e ... last)
+
+  ;; TODO: what to do about require?
+  (require s:string)
+
+  ;; TODO: probably also want implicit begin positions in function bodies, maybe as a macro?
+  (lambda (v:lsl-nt ...) b:lsl-expr)
+  #:binding (scope (bind v) ... b)
+
+  (let ([v:lsl-nt e:lsl-expr] ...)
+    b:lsl-expr)
+  #:binding (scope (bind v) ... b)
+
+  (let* (b:binding ...)
+    body:lsl-expr)
+  #:binding (nest b ... body)
+  
+  (letrec (b:rec-binding ...)
+    body:lsl-expr)
+  #:binding (nest b ... body)
+
+  (local (b:local-binding ...)
+    body:lsl-expr)
+  #:binding (nest b ... body))
+
+ (nonterminal/nesting
+  binding (hole)
+  #:binding-space lsl
+  [v:lsl-nt e:lsl-expr]
+  #:binding (scope (bind v) hole))
+
+ (nonterminal/nesting
+  rec-binding (hole)
+  #:binding-space lsl
+  [v:lsl-nt e:lsl-expr]
+  #:binding (scope (bind v) e hole))
+
+ (nonterminal/nesting
+  local-binding (hole)
+  #:binding-space lsl
+  [v:lsl-nt e:lsl-expr]
+  #:binding (scope (bind v) e hole)
+
+  d:lsl-def
+  #:binding (nest d hole))
+
+ (nonterminal
+  ctc
+  #:description "contract"
+  #:binding-space ctc
+  ((~datum Immediate) ((~datum check) pred:lsl-expr)
+                      ((~datum generate) gen:lsl-expr)
+                      ((~datum shrink) shrk:lsl-expr)
+                      ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
+  c:ctc-nt
+  e:lsl-expr)
+
+ (nonterminal/nesting
+  ctc-def (hole)
+  #:description "contract definition"
+  #:binding-space ctc
+  
+  (define-contract c:ctc-nt contract:ctc)
+  #:binding (scope (bind c) contract hole)
+
+  (: v:lsl-nt c:ctc))
+
+
+ ;; only having this seems very suspect...
  (host-interface/expression
-  (:/internal v:racket-var c:ctc unexpanded:expr)
-  (define maybe-ctc (contract-table-ref #'v))
-  (when maybe-ctc
-    (raise-syntax-error (syntax-e #'v) (format "contract previously declared for ~a" (syntax-e #'v)) maybe-ctc))
+  (#%lsl e:lsl-form ... )
+  #:binding (nest e ... ())
+   #`(block #,@(map compile-lsl (attribute e)))))
 
-  (define compiled-ctc (compile-contract #'c #'unexpanded))
-  (contract-table-set! #'v compiled-ctc)
-  #'(void)))
-
-
-
-;; TODO: define-contract and : look very similar, should refactor
-(define-syntax (define-contract stx)
-  (syntax-parse stx
-    [(_ head:id b)
-     (contract-add! #'head)
-     (define/syntax-parse body-stx
-       (syntax-parse #'b
-         [i:id
-          (if (contract? #'i)
-              #'i
-              #'(Immediate (check i) (generate #f) (shrink #f)))]
-         [((~datum Immediate) ~! (~alt (~once ((~datum check) pred:expr))
-                                       (~once ((~datum generate) gen:expr))
-                                       (~once ((~datum shrink) shrk:expr))
-                                       ((~datum feature) feat-name:string feat:expr)) ...)
-          #'(Immediate (check pred)
-                       (generate gen)
-                       (shrink shrk)
-                       (feature feat-name feat) ...)]
-         [e:expr
-          #'(Immediate (check e) (generate #f) (shrink #f))])) 
-     #'(define-contract/internal head body-stx b)]))
-
-
-(define-syntax (: stx)
-  (syntax-parse stx
-    [(_ head:id b)
-     (define/syntax-parse body-stx
-       (syntax-parse #'b
-         [i:id
-          (if (contract? #'i)
-              #'i
-              #'(Immediate (check i) (generate #f) (shrink #f)))]
-         [((~datum Immediate) ~! (~alt (~once ((~datum check) pred:expr))
-                                       (~once ((~datum generate) gen:expr))
-                                       (~once ((~datum shrink) shrk:expr))
-                                       ((~datum feature) feat-name:string feat:expr)) ...)
-          #'(Immediate (check pred)
-                       (generate gen)
-                       (shrink shrk)
-                       (feature feat-name feat) ...)]
-         [e:expr
-          #'(Immediate (check e) (generate #f) (shrink #f))]))
-     #'(:/internal head body-stx b)]))
-
-(define-syntax (define stx)
-  (syntax-parse stx
-    [(_ h b)
-     #'(define-protected h b)]))
+(define-dsl-syntax define lsl-macro
+  (lambda (stx)
+    (syntax-parse stx
+      [(_ (x:id args:id ...)
+          e:expr ...)
+       #'(define/i x
+           (lambda (args ...)
+             (begin
+               e ...)))]
+      [(_ x:id e:expr)
+       #'(define/i x e)])))

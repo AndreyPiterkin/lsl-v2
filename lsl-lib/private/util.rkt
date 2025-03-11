@@ -1,11 +1,13 @@
 #lang racket
 
-(require (for-syntax syntax/id-table))
+(require (for-syntax syntax/id-table
+                     racket/string))
 
 (provide (for-syntax contract-table-set!
                      contract-table-ref
                      contract-add!
-                     contract?))
+                     contract?
+                     strip))
 
 (begin-for-syntax
   ;; TODO: this contracts table is an ugly hack, used as a set for us to be able to differentiate
@@ -28,4 +30,9 @@
     (void))
 
   (define (contract-table-ref id)
-    (free-id-table-ref free-contract-table id #f)))
+    (free-id-table-ref free-contract-table id #f))
+
+  (define ((strip pre) str)
+    (and (string-prefix? str pre)
+         (substring str (string-length pre)))))
+

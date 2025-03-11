@@ -1,19 +1,20 @@
 #lang racket/base
 
-(provide compile-contract)
 
 (require (for-template
           racket/base
           racket/class
           "../runtime/immediate.rkt"
-          "../util.rkt")
-         syntax/parse)
+          "../util.rkt"
+          racket/require)
+         
+         syntax/parse
+         "grammar.rkt")
 
-;; TODO: not sure why syntax-property doesn't work on host-interface expressions, so compile-contract
-;; currently takes a second arg for the original unexpanded version
-(define (compile-contract stx srcloc)
-  (define stx^ (syntax-property (datum->syntax stx (syntax-e stx) srcloc stx) 'unexpanded srcloc))
-  (define quoted-stx #`#'#,stx^)
+(provide compile-lsl)
+
+(define (compile-contract stx)
+  (define quoted-stx #`#'#,stx)
   (syntax-parse stx
     #:datum-literals (Immediate check generate shrink)
     [(Immediate (check pred:expr)
@@ -26,5 +27,38 @@
             [gen g]
             [shrink shr]
             [features (list (cons feat-name feat) ...)])]
-    [i:id stx^]))
+    [i:id stx]))
+
+(define (compile-lsl stx)
+  (syntax-parse stx
+    #:literal-sets (lsl-literals)
+    [(~or e:number e:string e:boolean e:id) #'e]
+    [(and e:expr ...) #'(and e ...)]
+    [(or e:expr ...) #'(and e ...)]
+    [(cond [c e] ... [else el]) #'(cond [c e] ... [else el])]
+    [(if c t e) #'(if c t e)]
+    [(quote x) #''x]
+    [(begin e ...) #'(begin e ...)]
+    [(lambda (args ...) e) #'(lambda (args ...) e)]
+    [(let (e ...) body) #'(let (e ...) body)]
+    [(let* (e ...) body) #'(let* (e ...) body)]
+    [(letrec (e ...) body) #'(letrec (e ...) body)]
+    [(local (e ...) body) #'(local (e ...) body)]
+    [(require e) #'(require e)]
+    [(define/i v b)
+     (define maybe-ctc (contract-table-ref #'v))
+     (if maybe-ctc
+         #`(define v ((send #,maybe-ctc protect b (positive-blame 'v (quote-module-name))) b (negative-blame 'v (quote-module-name))))
+         #'(define v b))]
+    [(: v ctc)
+     (define maybe-ctc (contract-table-ref #'v))
+     (when maybe-ctc
+       (raise-syntax-error (syntax-e #'v) (format "contract previously declared for ~a" (syntax-e #'v)) maybe-ctc))
+
+     (define compiled-ctc (compile-contract #'ctc))
+     (println compiled-ctc)
+     (contract-table-set! #'v compiled-ctc)
+     #'(void)]
+    [(define-contract name contract)
+     #`(define name #,(compile-contract #'contract))]))
 

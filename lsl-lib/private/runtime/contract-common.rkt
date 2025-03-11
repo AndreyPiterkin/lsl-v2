@@ -41,7 +41,7 @@
 ;; Contract Syntax Any Blame -> !
 ;; Raises a contract error for the given offending value and its attached contract and blame
 (define (contract-error _ctc stx val blm
-                        #:expected [expected (syntax->datum (syntax-property stx 'unexpanded))]
+                        #:expected [expected (syntax->datum stx)]
                         #:given [given (~v val)])
   (define error-msg
     (match blm

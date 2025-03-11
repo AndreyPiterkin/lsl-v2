@@ -1,9 +1,10 @@
-#lang racket
+#lang racket/base
 
-(require "private/syntax/spec.rkt")
+(require "private/syntax/spec.rkt"
+         "private/library/core.rkt")
 
-(define-contract Even even?)
+(provide (all-from-out "private/syntax/spec.rkt"))
+(provide (all-from-out "private/library/core.rkt"))
 
-(: x Even)
-(define x 4)
-
+(module reader syntax/module-reader
+  #:language 'lsl-v2)
