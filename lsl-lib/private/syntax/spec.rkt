@@ -63,6 +63,7 @@
       e:lsl-expr)
   (quote e:lsl-expr)
 
+  ;; TODO: this is unideal. Ideally this would come implicitly...
   (rkt e:racket-expr)
   
   (#%lambda (v:lsl-nt ...) b:lsl-expr)

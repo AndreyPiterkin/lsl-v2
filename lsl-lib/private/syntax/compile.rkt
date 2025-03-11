@@ -40,6 +40,7 @@
               [check e])])))
 
 
+;; TODO: validate legal contract positions
 (define-syntax (compile-lsl stx)
   (println stx)
   (syntax-parse stx
@@ -63,6 +64,7 @@
          #`(define v ((send #,maybe-ctc protect (compile-lsl b) (positive-blame 'v (quote-module-name))) (compile-lsl b) (negative-blame 'v (quote-module-name))))
          #'(define v (compile-lsl b)))]
     [(_ (: v ctc))
+     ;; TODO: attach contract
      #'(void)]
     [(_ (define-contract name contract))
      #`(define name #,(compile-contract #'contract))]))
