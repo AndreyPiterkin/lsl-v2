@@ -5,5 +5,5 @@
 (provide lsl-literals)
 
 (define-literal-set lsl-literals
-  #:datum-literals (and or cond else if quote begin local let let* letrec lambda define/i : define-contract)
+  #:datum-literals (and or cond else if quote #%let #%let* #%letrec #%lambda #%lsl-app #%define : define-contract)
   ())

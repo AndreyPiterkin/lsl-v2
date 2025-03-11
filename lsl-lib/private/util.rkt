@@ -1,20 +1,23 @@
-#lang racket
+#lang racket/base
 
 (require (for-syntax syntax/id-table
-                     racket/string))
+                     racket/string
+                     syntax/parse
+                     racket/base))
 
 (provide (for-syntax contract-table-set!
                      contract-table-ref
                      contract-add!
                      contract?
-                     strip))
+                     strip
+                     contracts))
 
 (begin-for-syntax
   ;; TODO: this contracts table is an ugly hack, used as a set for us to be able to differentiate
   ;; contract bindings (ctc-nt) from syntax-spec from ISL identifiers used in implicit contract position
   (define contracts (make-free-id-table))
-  (define (contract-add! id)
-    (free-id-table-set! contracts id #t)
+  (define (contract-add! id stx)
+    (free-id-table-set! contracts id stx)
     (void))
 
   (define (contract? id)

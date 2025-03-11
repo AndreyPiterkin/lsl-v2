@@ -1,13 +1,13 @@
 #lang racket
 
-(require "../syntax/spec.rkt"
-         "../util.rkt"
-         racket/provide
-         (for-syntax syntax/parse
-                     syntax/parse/lib/function-header))
+(require
+  (for-space lsl "../syntax/spec.rkt")
+  "../syntax/spec.rkt"
+  "../util.rkt"
+  racket/provide
+  (for-syntax syntax/parse))
 
-(provide (all-from-out "../syntax/spec.rkt")
-         #%top-interaction
+(provide #%top-interaction
          #%app
          #%top
          quote
@@ -16,41 +16,43 @@
           (strip "$")
           (combine-out $#%datum)))
 
-(provide
- natural?
- integer?
- random
- sqr
- sqrt
- *
- +
- -
- /
- <
- <=
- =
- >
- >=
- abs
- add1
- ceiling
- even?
- exact->inexact
- expt
- floor
- inexact->exact
- max
- min
- modulo
- negative?
- odd?
- pi
- positive?
- quotient
- remainder
- sgn
- sub1
- zero?)
+(provide (all-from-out "../syntax/spec.rkt")
+         (for-space lsl (all-from-out "../syntax/spec.rkt")))
+
+(provide natural?
+         integer?
+         random
+         sqr
+         sqrt
+         *
+         +
+         -
+         /
+         <
+         <=
+         =
+         >
+         >=
+         abs
+         add1
+         ceiling
+         even?
+         exact->inexact
+         expt
+         floor
+         inexact->exact
+         max
+         min
+         modulo
+         negative?
+         odd?
+         pi
+         positive?
+         quotient
+         remainder
+         sgn
+         sub1
+         zero?)
 
 (define-syntax $#%datum
   (syntax-parser
