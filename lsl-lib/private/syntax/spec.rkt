@@ -14,34 +14,22 @@
 (syntax-spec
  (binding-class ctc-nt #:description "contract binding")
  (binding-class lsl-nt #:description "lsl binding")
+ 
  (extension-class lsl-macro)
 
- (nonterminal/nesting
-  lsl-form (hole)
-  #:description "lsl form"
-  #:binding-space lsl
-  c:ctc-def
-  #:binding (nest c hole)
-                  
-  e:lsl-expr+def
-  #:binding (nest e hole))
-
- (nonterminal/nesting
-  lsl-expr+def (hole)
+ (nonterminal/exporting
+  lsl-def-or-expr
   #:description "lsl definition or expression"
   #:binding-space lsl
   #:allow-extension lsl-macro
-  e:lsl-expr
-  l:lsl-def
-  #:binding (nest l hole))
-
- (nonterminal/nesting
-  lsl-def (hole)
-  #:description "lsl definition"
-  #:binding-space lsl
-  #:allow-extension lsl-macro
   (define/i v:lsl-nt e:lsl-expr)
-  #:binding (scope (bind v) hole))
+  #:binding (export v)
+
+  (define-contract c:ctc-nt body:ctc)
+  #:binding (export c)
+  
+  (: v:lsl-nt c:ctc)
+  e:lsl-expr)
 
  (nonterminal
   lsl-expr
@@ -64,11 +52,9 @@
       e:lsl-expr)
   (quote e:lsl-expr)
   
-  (begin e:lsl-expr+def ... last:lsl-expr)
-  #:binding (nest e ... last)
+  (begin e:lsl-def-or-expr ... last:lsl-expr)
+  #:binding (scope (import e) ... last)
 
-  ;; TODO: what to do about require?
-  (require s:string)
 
   ;; TODO: probably also want implicit begin positions in function bodies, maybe as a macro?
   (lambda (v:lsl-nt ...) b:lsl-expr)
@@ -84,11 +70,8 @@
   
   (letrec (b:rec-binding ...)
     body:lsl-expr)
-  #:binding (nest b ... body)
-
-  (local (b:local-binding ...)
-    body:lsl-expr)
   #:binding (nest b ... body))
+
 
  (nonterminal/nesting
   binding (hole)
@@ -102,15 +85,6 @@
   [v:lsl-nt e:lsl-expr]
   #:binding (scope (bind v) e hole))
 
- (nonterminal/nesting
-  local-binding (hole)
-  #:binding-space lsl
-  [v:lsl-nt e:lsl-expr]
-  #:binding (scope (bind v) e hole)
-
-  d:lsl-def
-  #:binding (nest d hole))
-
  (nonterminal
   ctc
   #:description "contract"
@@ -119,25 +93,13 @@
                       ((~datum generate) gen:lsl-expr)
                       ((~datum shrink) shrk:lsl-expr)
                       ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
-  c:ctc-nt
-  e:lsl-expr)
+  e:lsl-expr
+  c:ctc-nt)
 
- (nonterminal/nesting
-  ctc-def (hole)
-  #:description "contract definition"
-  #:binding-space ctc
-  
-  (define-contract c:ctc-nt contract:ctc)
-  #:binding (scope (bind c) contract hole)
-
-  (: v:lsl-nt c:ctc))
-
-
- ;; only having this seems very suspect...
- (host-interface/expression
-  (#%lsl e:lsl-form ... )
-  #:binding (nest e ... ())
-   #`(block #,@(map compile-lsl (attribute e)))))
+ (host-interface/definitions
+  (#%lsl e:lsl-def-or-expr ...)
+  #:binding ((re-export e) ...)
+   #`(begin #,@(map compile-lsl (attribute e)))))
 
 (define-dsl-syntax define lsl-macro
   (lambda (stx)

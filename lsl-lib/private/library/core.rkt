@@ -6,16 +6,15 @@
          (for-syntax syntax/parse
                      syntax/parse/lib/function-header))
 
-(provide provide
+(provide (all-from-out "../syntax/spec.rkt")
          #%top-interaction
          #%app
          #%top
          quote
+         (rename-out [#%lsl #%module-begin])
          (filtered-out
           (strip "$")
-          (combine-out
-           $#%module-begin
-           $#%datum)))
+          (combine-out $#%datum)))
 
 (provide
  natural?
@@ -52,13 +51,6 @@
  sgn
  sub1
  zero?)
-
-
-(define-syntax $#%module-begin
-  (syntax-parser
-    [(_ form:expr ...)
-     #`(#%module-begin
-        (#%lsl form ...))]))
 
 (define-syntax $#%datum
   (syntax-parser
