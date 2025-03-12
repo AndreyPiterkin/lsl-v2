@@ -10,7 +10,7 @@
   (class contract%
     (super-new)
 
-    (init-field stx check gen shrink [features '()])
+    (init-field stx check (gen #f) (shrink #f) [features '()])
 
     (define/override (protect val pos)
       (if (check val)
