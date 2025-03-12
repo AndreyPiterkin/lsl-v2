@@ -5,19 +5,27 @@
                      syntax/parse
                      "grammar.rkt"
                      racket/base)
-
          "../runtime/immediate.rkt"
          "../runtime/contract-common.rkt"
          "../util.rkt"
          syntax/location
+         racket/stxparam
          racket/class)
 
 (provide compile-lsl
+         contract-pos
          (for-syntax string))
+
+(define-syntax-parameter contract-pos
+  (lambda (stx)
+    (syntax-parse stx
+      [(_ x:id)
+       (raise-syntax-error (syntax->datum #'x) "illegal contract use in lsl expression" #'x)])))
 
 (begin-for-syntax
   (define-syntax-class string
-      (pattern val #:when (string? (syntax-e #'val))))
+    (pattern val #:when (string? (syntax-e #'val))))
+
 
   (define (compile-contract stx)
     (define quoted-stx #`#'#,stx)

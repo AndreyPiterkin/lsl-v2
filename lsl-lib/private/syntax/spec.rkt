@@ -13,8 +13,16 @@
          (for-syntax (all-defined-out))
          (for-space lsl (all-defined-out)))
 
+(begin-for-syntax
+  (define ctc-ref-compiler
+    (make-variable-like-reference-compiler
+     (lambda (ident)
+       (syntax-parse ident
+         [x:id (syntax/loc #'x (contract-pos x))])))))
+
 (syntax-spec
  (binding-class lsl-nt #:description "lsl binding")
+ (binding-class ctc-nt #:description "contract binding" #:reference-compiler ctc-ref-compiler)
  (extension-class lsl-macro #:binding-space lsl)
 
  (nonterminal/exporting
@@ -22,7 +30,7 @@
   #:description "lsl form"
   #:binding-space lsl
   #:allow-extension lsl-macro
-  (define-contract c:lsl-nt body:ctc)
+  (define-contract c:ctc-nt body:ctc)
   #:binding (export c)
 
   (: v:lsl-nt c:ctc)
@@ -114,6 +122,10 @@
                       #;((~datum generate) gen:lsl-expr)
                       #;((~datum shrink) shrk:lsl-expr)
                       #;((~datum feature) feat-name:lsl-expr feat:lsl-expr) #;...)
+  (#%ctc-id i:ctc-nt)
+  (~> i:id
+      #:when (lookup #'x (binding-class-predicate ctc-nt))
+      #'(#%ctc-id i))
   e:lsl-expr)
 
  (host-interface/definitions
