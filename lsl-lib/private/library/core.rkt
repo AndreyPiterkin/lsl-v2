@@ -10,11 +10,9 @@
 (provide #%top-interaction
          #%app
          #%top
+         #%datum
          quote
-         (rename-out [#%lsl #%module-begin])
-         (filtered-out
-          (strip "$")
-          (combine-out $#%datum)))
+         (rename-out [#%lsl #%module-begin]))
 
 (provide (all-from-out "../syntax/spec.rkt")
          (for-space lsl (all-from-out "../syntax/spec.rkt")))
@@ -53,8 +51,3 @@
          sgn
          sub1
          zero?)
-
-(define-syntax $#%datum
-  (syntax-parser
-    [(_ . (~or e:number e:boolean e:string e:character))
-     #'(#%datum . e)]))

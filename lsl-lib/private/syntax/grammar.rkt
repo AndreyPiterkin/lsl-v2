@@ -5,5 +5,5 @@
 (provide lsl-literals)
 
 (define-literal-set lsl-literals
-  #:datum-literals (and or cond else if quote #%let #%let* #%letrec #%lambda #%lsl-app #%define : define-contract)
+  #:datum-literals (cond else if quote #%let #%let* #%letrec #%lambda #%lsl-app #%lsl-id #%rkt-id #%define : define-contract)
   ())

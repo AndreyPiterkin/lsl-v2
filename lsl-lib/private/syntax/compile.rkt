@@ -17,7 +17,7 @@
 
 (begin-for-syntax
   (define-syntax-class string
-    (pattern val #:when (string? (syntax-e #'val))))
+      (pattern val #:when (string? (syntax-e #'val))))
 
   (define (compile-contract stx)
     (define quoted-stx #`#'#,stx)
@@ -33,26 +33,18 @@
               [gen g]
               [shrink shr]
               [features (list (cons feat-name feat) ...)])]
-      [i:id #'i]
-      [(rkt e)
-       #`(new immediate%
-              [stx #,quoted-stx] 
-              [check e])])))
+      [i:id #'i])))
 
 
-;; TODO: validate legal contract positions
 (define-syntax (compile-lsl stx)
-  (println stx)
   (syntax-parse stx
     #:literal-sets (lsl-literals)
-    [(_ (~or e:number e:string e:boolean)) #'e]
+    [(_ (quote t)) #''t]
     [(_ i:id) #'i]
-    [(_ (and e:expr ...)) #'(and (compile-lsl e) ...)]
-    [(_ (or e:expr ...)) #'(or (compile-lsl e) ...)]
     [(_ (cond [c e] ... [else el])) #'(cond [(compile-lsl c) (compile-lsl e)] ... [else (compile-lsl el)])]
     [(_ (if c t e)) #'(if (compile-lsl c) (compile-lsl t) (compile-lsl e))]
-    [(_ (quote x)) #''(compile-lsl x)]
-    [(_ (rkt ((~datum #%host-expression) e))) #'e]
+    [(_ (#%rkt-id ((~datum #%host-expression) e:id))) #'e]
+    [(_ (#%lsl-id e:id)) #'e]
     [(_ (#%lambda (args ...) e)) #'(lambda (args ...) (compile-lsl e))]
     [(_ (#%lsl-app f args ...)) #'((compile-lsl f) (compile-lsl args) ...)]
     [(_ (#%let ((b e) ...) body)) #'(let ((b (compile-lsl e)) ...) (compile-lsl body))]
@@ -67,5 +59,6 @@
      ;; TODO: attach contract
      #'(void)]
     [(_ (define-contract name contract))
-     #`(define name #,(compile-contract #'contract))]))
+     ;; TODO: define contract
+     #'(void)]))
 

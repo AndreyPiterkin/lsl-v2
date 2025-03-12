@@ -5,6 +5,7 @@
          (for-syntax syntax/parse
                      "compile.rkt"
                      racket/list
+                     (only-in syntax-spec-v3/private/ee-lib/main lookup in-space)
                      (except-in racket/base
                                 string)))
 
@@ -13,7 +14,7 @@
          (for-space lsl (all-defined-out)))
 
 (syntax-spec
- (binding-class lsl-nt #:description "lsl binding" #:reference-compiler immutable-reference-compiler)
+ (binding-class lsl-nt #:description "lsl binding")
  (extension-class lsl-macro #:binding-space lsl)
 
  (nonterminal/exporting
@@ -23,9 +24,9 @@
   #:allow-extension lsl-macro
   (define-contract c:lsl-nt body:ctc)
   #:binding (export c)
-  
+
   (: v:lsl-nt c:ctc)
-  
+
   e:lsl-def-or-expr
   #:binding (re-export e))
 
@@ -44,28 +45,17 @@
   #:description "lsl expression"
   #:binding-space lsl
   #:allow-extension lsl-macro
-  
-  i:lsl-nt
-  n:number
-  s:string
-  b:boolean
 
-  (and e:lsl-expr ...)
-  (or e:lsl-expr ...)
+  (quote t:literal)
+  (#%lsl-id i:lsl-nt)
+  (#%rkt-id e:racket-expr)
 
-  (~datum ..)
-  (~datum ...)
-  (~datum ....)
   (cond [c:lsl-expr e:lsl-expr] ...
         [(~datum else) else:lsl-expr])
   (if c:lsl-expr
       t:lsl-expr
       e:lsl-expr)
-  (quote e:lsl-expr)
 
-  ;; TODO: this is unideal. Ideally this would come implicitly...
-  (rkt e:racket-expr)
-  
   (#%lambda (v:lsl-nt ...) b:lsl-expr)
   #:binding (scope (bind v) ... b)
 
@@ -76,15 +66,33 @@
   (#%let* (b:binding ...)
           body:lsl-expr)
   #:binding (nest b ... body)
-  
+
   (#%letrec (b:rec-binding ...)
             body:lsl-expr)
   #:binding (nest b ... body)
-  
+
   (#%lsl-app f:lsl-expr arg:lsl-expr ...)
 
   (~> (f:expr e:expr ...)
-      #'(#%lsl-app f e ...)))
+      #'(#%lsl-app f e ...))
+
+  (~> (~or lit:number lit:string lit:boolean)
+      #'(quote lit))
+
+  ;; conversion of identifiers to special forms to differentiate between LSL and Racket vars
+  ;; see https://github.com/michaelballantyne/hosted-minikanren/blob/main/private/spec.rkt#L47
+  (~> x:id
+      #:when (lookup #'x (binding-class-predicate lsl-nt))
+      #'(#%lsl-id x))
+  (~> x:id
+      #'(#%rkt-id x)))
+
+ (nonterminal literal
+              #:description "literal value"
+              n:number
+              s:string
+              b:boolean
+              i:id)
 
  (nonterminal/nesting
   binding (hole)
@@ -97,7 +105,7 @@
   #:binding-space lsl
   [v:lsl-nt e:lsl-expr]
   #:binding (scope (bind v) e hole))
- 
+
  (nonterminal
   ctc
   #:description "contract"
@@ -113,14 +121,14 @@
   #:binding ((re-export e) ...)
   #'(begin (compile-lsl e) ...)))
 
-(define-syntax define-lsl-syntax
-  (syntax-parser
-    [(_ name:id trans:expr)
-     #'(define-dsl-syntax name lsl-macro trans)]))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; special forms
+
+(define-syntax define-lsl-syntax
+  (syntax-parser
+    [(_ name:id transformer:expr)
+     #'(define-dsl-syntax name lsl-macro transformer)]))
 
 (define-lsl-syntax define
   (syntax-parser
