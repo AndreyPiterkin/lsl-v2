@@ -35,17 +35,17 @@
 (define-syntax (compile-contract stx)
   (define quoted-stx #`#'#,stx)
   (syntax-parse stx
-    #:datum-literals (#%rkt-id #%lsl-lift #%ctc-id Immediate check generate shrink)
-    [(_ (Immediate (check pred:expr)
-                   (generate g:expr)
-                   (shrink shr:expr)
-                   (feature feat-name:string feat:expr) ...))
+    #:literal-sets (contract-literals)
+    [(_ (#%Immediate (check pred:expr)
+                     (generate g:expr)
+                     (shrink shr:expr)
+                     (feature feat-name:expr feat:expr) ...))
      #`(new immediate%
             [stx #,quoted-stx] 
-            [check pred]
-            [gen g]
-            [shrink shr]
-            [features (list (cons feat-name feat) ...)])]
+            [check (compile-lsl pred)]
+            [gen (compile-lsl g)]
+            [shrink (compile-lsl shr)]
+            [features (list (cons (compile-lsl feat-name) (compile-lsl feat)) ...)])]
     [(_ (#%ctc-id i:id)) #'i]
     [(_ e:expr)
      #`(new immediate%

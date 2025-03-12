@@ -118,10 +118,25 @@
   ctc
   #:description "contract"
   #:binding-space lsl
-  ((~datum Immediate) ((~datum check) pred:lsl-expr)
-                      #;((~datum generate) gen:lsl-expr)
-                      #;((~datum shrink) shrk:lsl-expr)
-                      #;((~datum feature) feat-name:lsl-expr feat:lsl-expr) #;...)
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; IMMEDIATE
+
+  (~> ((~datum Immediate) (~alt (~once ((~datum check) pred:expr))
+                                (~optional ((~datum generate) gen:expr) #:defaults ((gen #'#f)))
+                                (~optional ((~datum shrink) shrk:expr) #:defaults ((shrk #'#f)))
+                                ((~datum feature) feat-name:expr feat:expr)) ...)
+      #'(#%Immediate (check pred)
+                     (generate gen)
+                     (shrink shrk)
+                     (feature feat-name feat) ...))
+
+  (#%Immediate ((~datum check) pred:lsl-expr)
+               ((~datum generate) gen:lsl-expr)
+               ((~datum shrink) shrk:lsl-expr)
+               ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
   (#%ctc-id i:ctc-nt)
   (~> x:id
       #:when (lookup #'x (binding-class-predicate ctc-nt))
