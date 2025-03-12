@@ -123,9 +123,9 @@
                       #;((~datum shrink) shrk:lsl-expr)
                       #;((~datum feature) feat-name:lsl-expr feat:lsl-expr) #;...)
   (#%ctc-id i:ctc-nt)
-  (~> i:id
+  (~> x:id
       #:when (lookup #'x (binding-class-predicate ctc-nt))
-      #'(#%ctc-id i))
+      #'(#%ctc-id x))
   e:lsl-expr)
 
  (host-interface/definitions

@@ -26,22 +26,31 @@
   (define-syntax-class string
     (pattern val #:when (string? (syntax-e #'val))))
 
+  (define (make-contract-transformer)
+    (lambda (stx)
+      (syntax-parse stx
+        [(_ ctc:id)
+         #'ctc]))))
 
-  (define (compile-contract stx)
-    (define quoted-stx #`#'#,stx)
-    (syntax-parse stx
-      #:datum-literals (rkt Immediate check generate shrink)
-      [(Immediate (check pred:expr)
-                  (generate g:expr)
-                  (shrink shr:expr)
-                  (feature feat-name:string feat:expr) ...)
-       #`(new immediate%
-              [stx #,quoted-stx] 
-              [check pred]
-              [gen g]
-              [shrink shr]
-              [features (list (cons feat-name feat) ...)])]
-      [i:id #'i])))
+(define-syntax (compile-contract stx)
+  (define quoted-stx #`#'#,stx)
+  (syntax-parse stx
+    #:datum-literals (#%rkt-id #%lsl-lift #%ctc-id Immediate check generate shrink)
+    [(_ (Immediate (check pred:expr)
+                   (generate g:expr)
+                   (shrink shr:expr)
+                   (feature feat-name:string feat:expr) ...))
+     #`(new immediate%
+            [stx #,quoted-stx] 
+            [check pred]
+            [gen g]
+            [shrink shr]
+            [features (list (cons feat-name feat) ...)])]
+    [(_ (#%ctc-id i:id)) #'i]
+    [(_ e:expr)
+     #`(new immediate%
+            [stx #,quoted-stx] 
+            [check (compile-lsl e)])]))
 
 
 (define-syntax (compile-lsl stx)
@@ -64,9 +73,17 @@
          #`(define v ((send #,maybe-ctc protect (compile-lsl b) (positive-blame 'v (quote-module-name))) (compile-lsl b) (negative-blame 'v (quote-module-name))))
          #'(define v (compile-lsl b)))]
     [(_ (: v ctc))
-     ;; TODO: attach contract
+     (define maybe-ctc (contract-table-ref #'v))
+     (when maybe-ctc
+       (raise-syntax-error (syntax->datum #'v) "value has previously attached contract" #'v))
+     (define compiled-ctc
+       #'(syntax-parameterize ([contract-pos (make-contract-transformer)])
+           (compile-contract ctc)))
+     (contract-table-set! #'v compiled-ctc)
      #'(void)]
     [(_ (define-contract name contract))
-     ;; TODO: define contract
-     #'(void)]))
+     ;; TODO: is this the desired behavior?
+     #'(define name
+         (syntax-parameterize ([contract-pos (make-contract-transformer)])
+           (compile-contract contract)))]))
 

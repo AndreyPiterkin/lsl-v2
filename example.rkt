@@ -2,5 +2,5 @@
 
 (define-contract Even even?)
 
-(: x Even)
+(: x even?)
 (define x 1)
