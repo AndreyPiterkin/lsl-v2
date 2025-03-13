@@ -6,6 +6,7 @@
                      "grammar.rkt"
                      racket/base)
          "../runtime/immediate.rkt"
+         "../runtime/function.rkt"
          "../runtime/contract-common.rkt"
          "../util.rkt"
          syntax/location
@@ -57,6 +58,13 @@
             [gen (compile-lsl g)]
             [shrink (compile-lsl shr)]
             [features (list (cons (compile-lsl feat-name) (compile-lsl feat)) ...)])]
+    [(_ (#%Function (arguments (x:id c:expr) ...)
+                    (result r:expr)))
+     #`(new function%
+            [stx #,quoted-stx]
+            [arg-order (list)]
+            [args (list (cons (compile-lsl 'x) (compile-lsl 'e)) ...)]
+            [result (compile-lsl 'r)])]
     [(_ (#%ctc-id i:id)) #'i]
     [(_ e:expr)
      #`(new immediate%

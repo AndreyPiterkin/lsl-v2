@@ -12,5 +12,5 @@
 
 ;; Set of literals that are found in contract position
 (define-literal-set contract-literals
-  #:datum-literals (#%ctc-id #%Immediate check generate shrink feature)
+  #:datum-literals (#%ctc-id #%Immediate check generate shrink feature #%Function arguments result raises)
   ())

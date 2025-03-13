@@ -121,7 +121,12 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; IMMEDIATE
 
-  (~> ((~datum Immediate) (~alt (~once ((~datum check) pred:expr))
+  (#%Immediate ((~datum check) pred:lsl-expr)
+               ((~datum generate) gen:lsl-expr)
+               ((~datum shrink) shrk:lsl-expr)
+               ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
+
+  (~> ((~datum Immediate) (~alt (~optional ((~datum check) pred:expr) #:defaults ((pred #'(lambda (_) #t))))
                                 (~optional ((~datum generate) gen:expr) #:defaults ((gen #'#f)))
                                 (~optional ((~datum shrink) shrk:expr) #:defaults ((shrk #'#f)))
                                 ((~datum feature) feat-name:expr feat:expr)) ...)
@@ -130,18 +135,34 @@
                      (shrink shrk)
                      (feature feat-name feat) ...))
 
-  (#%Immediate ((~datum check) pred:lsl-expr)
-               ((~datum generate) gen:lsl-expr)
-               ((~datum shrink) shrk:lsl-expr)
-               ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; FUNCTION
+
+  (#%Function ((~datum arguments) b:contract-rec-binding ...)
+              ((~datum result) c:ctc)
+              ;; TODO: raises
+              #;((~datum raises)))
+  #:binding (nest b ... c)
+
+  (~> ((~datum Function) ~! (~alt (~once ((~datum arguments) [x:id a:expr] ...))
+                                  (~once ((~datum result) r:expr))
+                                  ;; TODO: raises
+                                  #;(~optional (raises e:struct-id ...))) ...)
+      #'(#%Function (arguments [x a] ...)
+                    (result r)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
   (#%ctc-id i:ctc-nt)
   (~> x:id
       #:when (lookup #'x (binding-class-predicate ctc-nt))
       #'(#%ctc-id x))
   e:lsl-expr)
+
+ (nonterminal/nesting
+  contract-rec-binding (hole)
+  #:binding-space lsl
+  [v:lsl-nt e:ctc]
+  #:binding (scope (bind v) e hole))
 
  (host-interface/definitions
   (#%lsl e:lsl-form ...)
