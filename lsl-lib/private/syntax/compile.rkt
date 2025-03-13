@@ -40,7 +40,7 @@
              [pos (positive-blame name (quote-module-name))]
              [neg (negative-blame name (quote-module-name))]
              [ctc #,ctc])
-        (rt-attach-contract pos neg ctc body))))
+        (rt-attach-contract! pos neg ctc body))))
 
 ;; Compile the given contract form
 (define-syntax (compile-contract stx)
