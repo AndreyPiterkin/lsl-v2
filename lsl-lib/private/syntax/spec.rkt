@@ -31,8 +31,8 @@
   #:binding-space lsl
   #:allow-extension lsl-macro
   ;; TODO: should contract forms only be top level?
-  (define-contract c:ctc-nt body:ctc)
-  #:binding (export c)
+  (define-contract def:ctc-nt c:ctc)
+  #:binding (export def)
   (: v:lsl-nt c:ctc)
 
   e:lsl-def-or-expr

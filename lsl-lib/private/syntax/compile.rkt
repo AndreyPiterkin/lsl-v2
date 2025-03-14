@@ -27,7 +27,13 @@
   (define-syntax-class string
     (pattern val #:when (string? (syntax-e #'val))))
 
-  (define (make-contract-transformer)
+  (define (make-invalid-contract-transformer)
+    (lambda (stx)
+      (syntax-parse stx
+        [(_ x:id)
+         (raise-syntax-error (syntax->datum #'x) "illegal contract use in lsl expression" #'x)])))
+
+  (define (make-valid-contract-transformer)
     (lambda (stx)
       (syntax-parse stx
         [(_ ctc:id)
@@ -43,6 +49,19 @@
              [ctc #,ctc])
         (rt-attach-contract! pos neg ctc body))))
 
+
+(define-syntax (make-contract-to-lsl-boundary lsl-stx)
+  (syntax-parse lsl-stx
+    [(_ l)
+     #'(syntax-parameterize ([contract-pos (make-invalid-contract-transformer)])
+         l)]))
+
+(define-syntax (make-lsl-to-contract-boundary ctc-stx)
+  (syntax-parse ctc-stx
+    [(_ c)
+     #'(syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
+         c)]))
+
 ;; Compile the given contract form
 (define-syntax (compile-contract stx)
   (define quoted-stx #`#'#,stx)
@@ -54,22 +73,28 @@
                      (feature feat-name:expr feat:expr) ...))
      #`(new immediate%
             [stx #,quoted-stx] 
-            [check (compile-lsl pred)]
-            [gen (compile-lsl g)]
-            [shrink (compile-lsl shr)]
-            [features (list (cons (compile-lsl feat-name) (compile-lsl feat)) ...)])]
+            [check (make-contract-to-lsl-boundary (compile-lsl pred))]
+            [gen (make-contract-to-lsl-boundary (compile-lsl g))]
+            [shrink (make-contract-to-lsl-boundary (compile-lsl shr))]
+            [features (list (cons
+                             (make-contract-to-lsl-boundary (compile-lsl feat-name))
+                             (make-contract-to-lsl-boundary (compile-lsl feat))) ...)])]
     [(_ (#%Function (arguments (x:id c:expr) ...)
                     (result r:expr)))
      #`(new function%
             [stx #,quoted-stx]
             [arg-order (list)]
-            [args (list (cons (compile-lsl 'x) (compile-lsl 'e)) ...)]
-            [result (compile-lsl 'r)])]
+            [args (list (cons (make-contract-to-lsl-boundary (compile-lsl 'x))
+                              (compile-contract c)) ...)]
+            [result (make-contract-to-lsl-boundary (compile-lsl 'r))])]
     [(_ (#%ctc-id i:id)) #'i]
     [(_ e:expr)
-     #`(new immediate%
-            [stx #,quoted-stx]
-            [check (compile-lsl e)])]))
+     #`(let ([pred (make-contract-to-lsl-boundary (compile-lsl e))])
+         (unless (procedure? pred)
+           (raise-syntax-error #f "invalid immediate contract (must be a predicate)" #'e))
+         (new immediate%
+              [stx #,quoted-stx]
+              [check pred]))]))
 
 ;; Compile the given LSL form
 (define-syntax (compile-lsl stx)
@@ -98,14 +123,14 @@
      (when maybe-ctc
        (raise-syntax-error (syntax->datum #'v) "value has previously attached contract" #'v))
      (define compiled-ctc
-       #'(syntax-parameterize ([contract-pos (make-contract-transformer)])
+       #'(syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
            (compile-contract ctc)))
      (contract-table-set! #'v compiled-ctc)
      #'(void)]
     [(_ (define-contract name contract))
      ;; TODO: is this the desired behavior?
      #'(define name
-         (syntax-parameterize ([contract-pos (make-contract-transformer)])
+         (syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
            (compile-contract contract)))]))
 
 ;; PositiveBlame NegativeBlame Contract Any -> Any
