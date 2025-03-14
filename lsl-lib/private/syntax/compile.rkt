@@ -71,6 +71,7 @@
                      (generate g:expr)
                      (shrink shr:expr)
                      (feature feat-name:expr feat:expr) ...))
+     ;; TODO: compile check/gen/shrink similarly to on line 92? i.e. check if theyre procs?
      #`(new immediate%
             [stx #,quoted-stx] 
             [check (make-contract-to-lsl-boundary (compile-lsl pred))]
