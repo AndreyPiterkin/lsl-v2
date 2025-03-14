@@ -10,10 +10,16 @@
                                 string)))
 
 (provide (all-defined-out)
+         ;; TODO: don't provide all out, only the forms students should be able to write
          (for-syntax (all-defined-out))
          (for-space lsl (all-defined-out)))
 
 (begin-for-syntax
+  ;; Stx Stx -> Stx
+  ;; Tags the new syntax with the old syntax under the property 'unexpanded
+  (define (tag-syntax-with-unexpanded new-stx old-stx)
+    (syntax-property new-stx 'unexpanded old-stx))
+
   (define ctc-ref-compiler
     (make-variable-like-reference-compiler
      (lambda (ident)
@@ -126,14 +132,16 @@
                ((~datum shrink) shrk:lsl-expr)
                ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
 
-  (~> ((~datum Immediate) (~alt (~optional ((~datum check) pred:expr) #:defaults ((pred #'(lambda (_) #t))))
-                                (~optional ((~datum generate) gen:expr) #:defaults ((gen #'#f)))
-                                (~optional ((~datum shrink) shrk:expr) #:defaults ((shrk #'#f)))
-                                ((~datum feature) feat-name:expr feat:expr)) ...)
-      #'(#%Immediate (check pred)
-                     (generate gen)
-                     (shrink shrk)
-                     (feature feat-name feat) ...))
+  (~> ((~datum Immediate) ~! (~alt (~optional ((~datum check) pred:expr) #:defaults ((pred #'(lambda (_) #t))))
+                                   (~optional ((~datum generate) gen:expr) #:defaults ((gen #'#f)))
+                                   (~optional ((~datum shrink) shrk:expr) #:defaults ((shrk #'#f)))
+                                   ((~datum feature) feat-name:expr feat:expr)) ...)
+      (tag-syntax-with-unexpanded
+       #'(#%Immediate (check pred)
+                      (generate gen)
+                      (shrink shrk)
+                      (feature feat-name feat) ...)
+       this-syntax))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; FUNCTION
@@ -148,15 +156,19 @@
                                   (~once ((~datum result) r:expr))
                                   ;; TODO: raises
                                   #;(~optional (raises e:struct-id ...))) ...)
-      #'(#%Function (arguments [x a] ...)
-                    (result r)))
+      (tag-syntax-with-unexpanded #'(#%Function (arguments [x a] ...)
+                                                (result r))
+                                  this-syntax))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (#%ctc-id i:ctc-nt)
   (~> x:id
       #:when (lookup #'x (binding-class-predicate ctc-nt))
-      #'(#%ctc-id x))
-  e:lsl-expr)
+      (tag-syntax-with-unexpanded #'(#%ctc-id x) #'x))
+
+  (#%lsl-expr e:lsl-expr)
+  (~> e:expr
+      (tag-syntax-with-unexpanded #'(#%lsl-expr e) #'e)))
 
  (nonterminal/nesting
   contract-rec-binding (hole)
@@ -168,7 +180,6 @@
   (#%lsl e:lsl-form ...)
   #:binding ((re-export e) ...)
   #'(begin (compile-lsl e) ...)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; special forms

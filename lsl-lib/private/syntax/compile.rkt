@@ -67,34 +67,37 @@
   (define quoted-stx #`#'#,stx)
   (syntax-parse stx
     #:literal-sets (contract-literals)
-    [(_ (#%Immediate (check pred:expr)
-                     (generate g:expr)
-                     (shrink shr:expr)
-                     (feature feat-name:expr feat:expr) ...))
+    [(_ (~and (#%Immediate (check pred:expr)
+                           (generate g:expr)
+                           (shrink shr:expr)
+                           (feature feat-name:expr feat:expr) ...)
+              stx^))
      ;; TODO: compile check/gen/shrink similarly to on line 92? i.e. check if theyre procs?
      #`(new immediate%
-            [stx #,quoted-stx] 
+            [stx #'#,(syntax-property #'stx^ 'unexpanded)]
             [check (make-contract-to-lsl-boundary (compile-lsl pred))]
             [gen (make-contract-to-lsl-boundary (compile-lsl g))]
             [shrink (make-contract-to-lsl-boundary (compile-lsl shr))]
             [features (list (cons
                              (make-contract-to-lsl-boundary (compile-lsl feat-name))
                              (make-contract-to-lsl-boundary (compile-lsl feat))) ...)])]
-    [(_ (#%Function (arguments (x:id c:expr) ...)
-                    (result r:expr)))
+    [(_ (~and (#%Function (arguments (x:id c:expr) ...)
+                          (result r:expr))
+              stx^))
      #`(new function%
-            [stx #,quoted-stx]
+            [stx #'#,(syntax-property #'stx^ 'unexpanded)]
             [arg-order (list)]
             [args (list (cons (make-contract-to-lsl-boundary (compile-lsl 'x))
                               (compile-contract c)) ...)]
             [result (make-contract-to-lsl-boundary (compile-lsl 'r))])]
     [(_ (#%ctc-id i:id)) #'i]
-    [(_ e:expr)
+    [(_ (~and (#%lsl-expr e:expr)
+              stx^))
      #`(let ([pred (make-contract-to-lsl-boundary (compile-lsl e))])
          (unless (procedure? pred)
            (raise-syntax-error #f "invalid immediate contract (must be a predicate)" #'e))
          (new immediate%
-              [stx #,quoted-stx]
+              [stx #'#,(syntax-property #'stx^ 'unexpanded)]
               [check pred]))]))
 
 ;; Compile the given LSL form
@@ -107,7 +110,8 @@
     [(_ (if c t e)) #'(if (compile-lsl c) (compile-lsl t) (compile-lsl e))]
     [(_ (#%rkt-id ((~datum #%host-expression) e:id))) #'e]
     [(_ (#%lsl-id e:id)) #'e]
-    [(_ (#%lambda (args ...) e)) #'(lambda (args ...) (compile-lsl e))]
+    [(_ (~and (#%lambda (args ...) e) stx^))
+     #'(lambda (args ...) (compile-lsl e))]
     [(_ (#%lsl-app f args ...)) #'((compile-lsl f) (compile-lsl args) ...)]
     [(_ (#%let ((b e) ...) body)) #'(let ((b (compile-lsl e)) ...) (compile-lsl body))]
     [(_ (#%let* ((b e) ...) body)) #'(let* ((b (compile-lsl e)) ...) (compile-lsl body))]
