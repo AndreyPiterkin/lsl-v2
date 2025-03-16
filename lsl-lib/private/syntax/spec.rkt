@@ -69,8 +69,10 @@
   (#%lsl-id i:lsl-nt)
   (#%rkt-id e:racket-expr)
 
+  ;; TODO: optional else clause
   (cond [c:lsl-expr e:lsl-expr] ...
         [(~datum else) else:lsl-expr])
+
   (if c:lsl-expr
       t:lsl-expr
       e:lsl-expr)
@@ -174,20 +176,7 @@
   #:description "contract"
   #:binding-space lsl
   #:allow-extension lsl-macro
-  e:lsl-expr
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; IMMEDIATE
-
-  
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; FUNCTION
-
-  
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  
-  )
+  e:lsl-expr)
 
  (nonterminal/nesting
   contract-rec-binding (hole)

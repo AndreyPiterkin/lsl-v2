@@ -5,6 +5,63 @@
 (provide lsl-literals
          contract-literals)
 
+
+#|
+
+GRAMMAR
+
+<lsl-form> := (define-contract <ctc-id> <ctc>)
+            | (define-contract (<ctc-id> <id> ...) <ctc>)
+            | (: <lsl-id> <ctc>)
+            | <lsl-def-or-expr>
+
+<ctc-id> := <id> ;; separate binding classes for ctc and lsl, so they can't be used interchangably
+<lsl-id> := <id>
+
+<ctc> := (Immediate (check <lsl-expr>)
+                    (generate <lsl-expr>)
+                    (shrink <lsl-expr>)
+                    (feature <lsl-expr> <lsl-expr>) ...)
+       | (Function (arguments (<id> <ctc>) ...)
+                   (result <ctc>)
+       ;; TODO: other contracts
+       | (<ctc-id> <lsl-expr> ...) ;; instantiation of parameterized contracts with lsl values
+       | (<ctc-id> <ctc-id> ...) ;; instantiation of parameterized contracts with contracts
+       | <ctc-id>
+       | <lsl-expr>
+
+<lsl-def-or-expr> := (define <lsl-id> <lsl-expr>)
+                   | (define (<lsl-id> <lsl-id> ...) <lsl-expr>)
+                   | <lsl-expr>
+
+<lsl-expr> := <datum>
+            | (quote <datum>)
+            | <lsl-id>
+            | <rkt-id>
+            | (cond [<lsl-expr> <lsl-expr>] ...
+                    [else <lsl-expr>)
+            | (cond [<lsl-expr> <lsl-expr>] ...)
+            | (if <lsl-expr> <lsl-expr> <lsl-expr>)
+            | (lambda (<lsl-id> ...) <lsl-expr>)
+            | (let ([<lsl-id> <lsl-expr>] ...)
+                 <lsl-expr>)
+            | (let* ([<lsl-id> <lsl-expr>] ...)
+                  <lsl-expr>)
+            | (letrec ([<lsl-id> <lsl-expr>] ...)
+                    <lsl-expr>)
+            | (local [<local-definition> ...]
+                 <lsl-expr>)
+            | (<lsl-expr> <lsl-expr> ...)
+
+<local-definition> := (define <lsl-id> <lsl-expr>)
+                    | (define (<lsl-id> <lsl-id> ...) <lsl-expr>)
+
+
+|#
+
+
+
+
 ;; Set of literals that belong in lsl-form position
 (define-literal-set lsl-literals
   #:datum-literals (cond else if quote #%let #%let* #%letrec #%lambda #%lsl-app #%lsl-id #%rkt-id #%define : define-contract)
