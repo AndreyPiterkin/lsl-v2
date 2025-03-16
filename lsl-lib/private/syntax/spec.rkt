@@ -39,6 +39,11 @@
   ;; TODO: should contract forms only be top level?
   (define-contract def:ctc-nt c:ctc)
   #:binding (export def)
+
+  (define-contract (def:ctc-nt arg:id ...) c:ctc)
+  #:binding (export def)
+
+  
   (: v:lsl-nt c:ctc)
 
   e:lsl-def-or-expr
@@ -87,6 +92,47 @@
 
   (#%lsl-app f:lsl-expr arg:lsl-expr ...)
 
+  ;; CONTRACTS
+
+  (#%ctc-id i:ctc-nt)
+  
+  (#%ctc-app i:ctc-nt args:lsl-expr ...)
+
+  (#%Immediate ((~datum check) pred:lsl-expr)
+               ((~datum generate) gen:lsl-expr)
+               ((~datum shrink) shrk:lsl-expr)
+               ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
+
+  (~> ((~datum Immediate) ~! (~alt (~optional ((~datum check) pred:expr) #:defaults ((pred #'(lambda (_) #t))))
+                                   (~optional ((~datum generate) gen:expr) #:defaults ((gen #'#f)))
+                                   (~optional ((~datum shrink) shrk:expr) #:defaults ((shrk #'#f)))
+                                   ((~datum feature) feat-name:expr feat:expr)) ...)
+      (tag-syntax-with-unexpanded
+       #'(#%Immediate (check pred)
+                      (generate gen)
+                      (shrink shrk)
+                      (feature feat-name feat) ...)
+       this-syntax))
+
+
+  (#%Function ((~datum arguments) b:contract-rec-binding ...)
+              ((~datum result) c:ctc)
+              ;; TODO: raises
+              #;((~datum raises)))
+  #:binding (nest b ... c)
+
+  (~> ((~datum Function) ~! (~alt (~once ((~datum arguments) [x:id a:expr] ...))
+                                  (~once ((~datum result) r:expr))
+                                  ;; TODO: raises
+                                  #;(~optional (raises e:struct-id ...))) ...)
+      (tag-syntax-with-unexpanded #'(#%Function (arguments [x a] ...)
+                                                (result r))
+                                  this-syntax))
+  
+  (~> (i:id e:expr ...)
+      #:when (lookup #'i (binding-class-predicate ctc-nt))
+      #'(#%ctc-app i e ...))
+
   (~> (f:expr e:expr ...)
       #'(#%lsl-app f e ...))
 
@@ -98,6 +144,9 @@
   (~> x:id
       #:when (lookup #'x (binding-class-predicate lsl-nt))
       #'(#%lsl-id x))
+  (~> x:id
+      #:when (lookup #'x (binding-class-predicate ctc-nt))
+      (tag-syntax-with-unexpanded #'(#%ctc-id x) #'x))
   (~> x:id
       #'(#%rkt-id x)))
 
@@ -124,51 +173,21 @@
   ctc
   #:description "contract"
   #:binding-space lsl
+  #:allow-extension lsl-macro
+  e:lsl-expr
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; IMMEDIATE
 
-  (#%Immediate ((~datum check) pred:lsl-expr)
-               ((~datum generate) gen:lsl-expr)
-               ((~datum shrink) shrk:lsl-expr)
-               ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
-
-  (~> ((~datum Immediate) ~! (~alt (~optional ((~datum check) pred:expr) #:defaults ((pred #'(lambda (_) #t))))
-                                   (~optional ((~datum generate) gen:expr) #:defaults ((gen #'#f)))
-                                   (~optional ((~datum shrink) shrk:expr) #:defaults ((shrk #'#f)))
-                                   ((~datum feature) feat-name:expr feat:expr)) ...)
-      (tag-syntax-with-unexpanded
-       #'(#%Immediate (check pred)
-                      (generate gen)
-                      (shrink shrk)
-                      (feature feat-name feat) ...)
-       this-syntax))
+  
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; FUNCTION
 
-  (#%Function ((~datum arguments) b:contract-rec-binding ...)
-              ((~datum result) c:ctc)
-              ;; TODO: raises
-              #;((~datum raises)))
-  #:binding (nest b ... c)
-
-  (~> ((~datum Function) ~! (~alt (~once ((~datum arguments) [x:id a:expr] ...))
-                                  (~once ((~datum result) r:expr))
-                                  ;; TODO: raises
-                                  #;(~optional (raises e:struct-id ...))) ...)
-      (tag-syntax-with-unexpanded #'(#%Function (arguments [x a] ...)
-                                                (result r))
-                                  this-syntax))
+  
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (#%ctc-id i:ctc-nt)
-  (~> x:id
-      #:when (lookup #'x (binding-class-predicate ctc-nt))
-      (tag-syntax-with-unexpanded #'(#%ctc-id x) #'x))
-
-  (#%lsl-expr e:lsl-expr)
-  (~> e:expr
-      (tag-syntax-with-unexpanded #'(#%lsl-expr e) #'e)))
+  
+  )
 
  (nonterminal/nesting
   contract-rec-binding (hole)
@@ -210,7 +229,7 @@
         e:expr)
      (define duplicate (check-duplicates (attribute v) bound-identifier=?))
      (when duplicate
-       (raise-syntax-error #f "duplicate binding in localL " duplicate))
+       (raise-syntax-error #f "duplicate binding in local" duplicate))
      #'(#%let* ([v b] ...) e)]
     [(_ ((define (v:id args:id ...) b:expr) ...)
         e:expr)

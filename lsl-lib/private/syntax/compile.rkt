@@ -20,8 +20,8 @@
 (define-syntax-parameter contract-pos
   (lambda (stx)
     (syntax-parse stx
-      [(_ x:id)
-       (raise-syntax-error (syntax->datum #'x) "illegal contract use in lsl expression" #'x)])))
+      [(_ x:expr)
+       (raise-syntax-error #f "illegal contract use in lsl expression" #'x)])))
 
 (begin-for-syntax
   (define-syntax-class string
@@ -30,13 +30,13 @@
   (define (make-invalid-contract-transformer)
     (lambda (stx)
       (syntax-parse stx
-        [(_ x:id)
-         (raise-syntax-error (syntax->datum #'x) "illegal contract use in lsl expression" #'x)])))
+        [(_ x:expr)
+         (raise-syntax-error #f "illegal contract use in lsl expression" #'x)])))
 
   (define (make-valid-contract-transformer)
     (lambda (stx)
       (syntax-parse stx
-        [(_ ctc:id)
+        [(_ ctc:expr)
          #'ctc])))
 
   ;; SymbolSyntax ContractSyntax LslExprSyntax -> Syntax
@@ -81,6 +81,15 @@
             [features (list (cons
                              (make-contract-to-lsl-boundary (compile-lsl feat-name))
                              (make-contract-to-lsl-boundary (compile-lsl feat))) ...)])]
+    [(_ (~and (#%Recursive name:id
+                           c:expr
+                           (args:id ...))
+              stx^))
+     #`
+     (lambda (args ...)
+       (let* ([ctc (compile-contract c)]
+              [name ctc])
+         ctc))]
     [(_ (~and (#%Function (arguments (x:id c:expr) ...)
                           (result r:expr))
               stx^))
@@ -90,9 +99,10 @@
             [args (list (cons (make-contract-to-lsl-boundary (compile-lsl 'x))
                               (compile-contract c)) ...)]
             [result (make-contract-to-lsl-boundary (compile-lsl 'r))])]
-    [(_ (#%ctc-id i:id)) #'i]
-    [(_ (~and (#%lsl-expr e:expr)
-              stx^))
+    [(_ (#%ctc-id i:id))
+     #'(if (procedure? i) (raise-syntax-error #f "must instantiate parameterized contract" #'i) i)]
+    [(_ (#%ctc-app i:id e:expr ...)) #'(i e ...)]
+    [(_ e:expr)
      #`(let ([pred (make-contract-to-lsl-boundary (compile-lsl e))])
          (unless (procedure? pred)
            (raise-syntax-error #f "invalid immediate contract (must be a predicate)" #'e))
@@ -132,11 +142,22 @@
            (compile-contract ctc)))
      (contract-table-set! #'v compiled-ctc)
      #'(void)]
+    
+    ;; TODO: is this the desired behavior for contract defs?
+    ;; Also, this has to be two forms because if define-contract was re-written
+    ;; like define with lambda too early, the lambda would be treated as part of the
+    ;; #%lsl-expr pred in contract position
     [(_ (define-contract name contract))
-     ;; TODO: is this the desired behavior?
      #'(define name
          (syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
-           (compile-contract contract)))]))
+           (compile-contract contract)))]
+    [(_ (define-contract (name args ...) contract))
+     #'(define name
+         (lambda (args ...)
+           (syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
+             (compile-contract contract))))]
+    [(_ e)
+     #'(contract-pos (compile-contract e))]))
 
 ;; PositiveBlame NegativeBlame Contract Any -> Any
 ;; Attaches the contract to the given value with the corresponding blame targets
