@@ -1,8 +1,9 @@
 #lang lsl-v2
 
+(define-contract Even even?)
 (define-contract (Divides n) (lambda (x) (zero? (modulo n x))))
 
-(: x (Divides 10))
+(: x (Divides (+ 0 10)))
 (define x 2)
 
 ;; EXPANDS TO:
@@ -28,5 +29,7 @@
              [pos (positive-blame name (quote-module-name))]
              [neg (negative-blame name (quote-module-name))]
              [ctc (syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
-                    ((contract-pos Divides) 10))])
+                    ((contract-pos Divides)
+                     (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)])
+                       (+ 0 10))))])
         (rt-attach-contract! pos neg ctc body))))

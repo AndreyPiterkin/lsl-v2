@@ -81,15 +81,6 @@
             [features (list (cons
                              (make-contract-to-lsl-boundary (compile-lsl feat-name))
                              (make-contract-to-lsl-boundary (compile-lsl feat))) ...)])]
-    [(_ (~and (#%Recursive name:id
-                           c:expr
-                           (args:id ...))
-              stx^))
-     #`
-     (lambda (args ...)
-       (let* ([ctc (compile-contract c)]
-              [name ctc])
-         ctc))]
     [(_ (~and (#%Function (arguments (x:id c:expr) ...)
                           (result r:expr))
               stx^))
@@ -102,8 +93,8 @@
     [(_ (#%ctc-id i:id))
      #'(if (procedure? i) (raise-syntax-error #f "must instantiate parameterized contract" #'i) i)]
     [(_ (#%ctc-app i:id e:expr ...))
-     ;; TODO: compile e; should it be compile-contract, or should it be compile-lsl?
-     #'(i e ...)]
+     ;; TODO: what if we have a parameterized contract with a mix of contract and lsl args...
+     #'(i (make-contract-to-lsl-boundary (compile-lsl e)) ...)]
     [(_ e:expr)
      #`(let ([pred (make-contract-to-lsl-boundary (compile-lsl e))])
          (unless (procedure? pred)
