@@ -28,7 +28,7 @@
 
 (syntax-spec
  (binding-class lsl-nt #:description "lsl binding")
- (binding-class ctc-nt #:description "contract binding" #:reference-compiler ctc-ref-compiler)
+ (binding-class ctc-nt #:description "contract binding")
  (extension-class lsl-macro #:binding-space lsl)
 
  (nonterminal/exporting

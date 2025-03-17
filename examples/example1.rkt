@@ -29,7 +29,7 @@
              [pos (positive-blame name (quote-module-name))]
              [neg (negative-blame name (quote-module-name))]
              [ctc (syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
-                    ((contract-pos Divides)
+                    (Divides
                      (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)])
                        (+ 0 10))))])
         (rt-attach-contract! pos neg ctc body))))
