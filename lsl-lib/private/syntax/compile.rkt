@@ -64,23 +64,28 @@
 
 ;; Compile the given contract form
 (define-syntax (compile-contract stx)
-  (define quoted-stx #`#'#,stx)
   (syntax-parse stx
     #:literal-sets (contract-literals)
     [(_ (~and (#%Immediate (check pred:expr)
                            (generate g:expr)
                            (shrink shr:expr)
-                           (feature feat-name:expr feat:expr) ...)
-              stx^))
-     ;; TODO: compile check/gen/shrink similarly to on line 92? i.e. check if theyre procs?
-     #`(new immediate%
-            [stx #'#,(syntax-property #'stx^ 'unexpanded)]
-            [check (make-contract-to-lsl-boundary (compile-lsl pred))]
-            [gen (make-contract-to-lsl-boundary (compile-lsl g))]
-            [shrink (make-contract-to-lsl-boundary (compile-lsl shr))]
-            [features (list (cons
-                             (make-contract-to-lsl-boundary (compile-lsl feat-name))
-                             (make-contract-to-lsl-boundary (compile-lsl feat))) ...)])]
+                           (feature feat-name:expr feat:expr) ...) stx^))
+     #`(let ([check (make-contract-to-lsl-boundary (compile-lsl pred))]
+             [gen (make-contract-to-lsl-boundary (compile-lsl g))]
+             [shrink (make-contract-to-lsl-boundary (compile-lsl shr))]
+             [features (list (list
+                              (make-contract-to-lsl-boundary (compile-lsl feat-name))
+                              (make-contract-to-lsl-boundary (compile-lsl feat)))
+                             ...)]
+             [stx #'#,(syntax-property #'stx^ 'unexpanded)])
+         (unless (procedure? check)
+           (raise-syntax-error #f "invalid immediate contract (must be a predicate)" #'pred))
+         (new immediate%
+              [stx stx]
+              [check check]
+              [gen gen]
+              [shrink shrink]
+              [features features]))]
     [(_ (~and (#%Function (arguments (x:id c:expr) ...)
                           (result r:expr))
               stx^))
@@ -91,17 +96,12 @@
                               (compile-contract c)) ...)]
             [result (make-contract-to-lsl-boundary (compile-lsl 'r))])]
     [(_ (#%ctc-id i:id))
-     #'(if (procedure? i) (raise-syntax-error #f "must instantiate parameterized contract" #'i) i)]
+     #'(if (procedure? i)
+           (raise-syntax-error #f "must instantiate parameterized contract" #'i)
+           i)]
     [(_ (#%ctc-app i:id e:expr ...))
      ;; TODO: what if we have a parameterized contract with a mix of contract and lsl args...
-     #'(i (make-contract-to-lsl-boundary (compile-lsl e)) ...)]
-    [(_ e:expr)
-     #`(let ([pred (make-contract-to-lsl-boundary (compile-lsl e))])
-         (unless (procedure? pred)
-           (raise-syntax-error #f "invalid immediate contract (must be a predicate)" #'e))
-         (new immediate%
-              [stx #'#,(syntax-property #'stx^ 'unexpanded)]
-              [check pred]))]))
+     #'(i (make-contract-to-lsl-boundary (compile-lsl e)) ...)]))
 
 ;; Compile the given LSL form
 (define-syntax (compile-lsl stx)
@@ -131,26 +131,22 @@
      (when maybe-ctc
        (raise-syntax-error (syntax->datum #'v) "value has previously attached contract" #'v))
      (define compiled-ctc
-       #'(syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
-           (compile-contract ctc)))
+       #'(make-lsl-to-contract-boundary (compile-contract ctc)))
      (contract-table-set! #'v compiled-ctc)
      #'(void)]
     
     ;; TODO: is this the desired behavior for contract defs?
     ;; Also, this has to be two forms because if define-contract was re-written
     ;; like define with lambda too early, the lambda would be treated as part of the
-    ;; #%lsl-expr pred in contract position
+    ;; lsl-expr pred in contract position
     [(_ (define-contract name contract))
      #'(define name
-         (syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
-           (compile-contract contract)))]
+         (make-lsl-to-contract-boundary (compile-contract contract)))]
     [(_ (define-contract (name args ...) contract))
      #'(define name
          (lambda (args ...)
-           (syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
-             (compile-contract contract))))]
-    [(_ e)
-     #'(contract-pos (compile-contract e))]))
+           (make-lsl-to-contract-boundary (compile-contract contract))))]))
+
 
 ;; PositiveBlame NegativeBlame Contract Any -> Any
 ;; Attaches the contract to the given value with the corresponding blame targets

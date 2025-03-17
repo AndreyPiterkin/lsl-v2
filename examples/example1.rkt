@@ -1,13 +1,11 @@
 #lang lsl-v2
 
-(define-contract Even even?)
 (define-contract (Divides n) (lambda (x) (zero? (modulo n x))))
 
-(: x (Divides (+ 0 10)))
+(: x (Divides (+ 5 5)))
 (define x 2)
 
 ;; EXPANDS TO:
-
 #;(begin
     ;; defines contract
     (define Divides
@@ -15,13 +13,19 @@
         ;; ensures usage of contracts references is allowed within the contract definition
         (syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
           ;; ensure when compiling pred--an lsl expression--that contracts refs are no longer valid
-          (let ([pred (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)])
-                        (lambda (x) (zero? (modulo n x))))])
-            (unless (procedure? pred)
-              (raise-syntax-error #f "invalid immediate contract (must be a predicate)" #'e))
+          (let ([check (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)]) (lambda (x) (zero? (modulo n x))))]
+                [gen (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)]) #f)]
+                [shrink (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)]) #f)]
+                [features (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)]) #f)]
+                [stx #'(lambda (x) (zero? (modulo n x)))])
+            (unless (procedure? check)
+              (raise-syntax-error #f "invalid immediate contract (must be a predicate)" #'(lambda (x) (zero? (modulo n x)))))
             (new immediate%
-                 [stx #'(lambda (x) (zero? (modulo n x)))]
-                 [check pred])))))
+                 [stx stx]
+                 [check check]
+                 [gen gen]
+                 [shrink shrink]
+                 [features features])))))
     (void) ;; attach contract (:) has some compile time behavior
     (define x
       (let* ([name 'x]
@@ -29,7 +33,7 @@
              [pos (positive-blame name (quote-module-name))]
              [neg (negative-blame name (quote-module-name))]
              [ctc (syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
-                    (Divides
+                    ((contract-pos Divides)
                      (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)])
                        (+ 0 10))))])
         (rt-attach-contract! pos neg ctc body))))

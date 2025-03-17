@@ -4,6 +4,7 @@
          "compile.rkt"
          (for-syntax syntax/parse
                      "compile.rkt"
+                     "grammar.rkt"
                      racket/list
                      (only-in syntax-spec-v3/private/ee-lib/main lookup in-space)
                      (except-in racket/base
@@ -28,7 +29,7 @@
 
 (syntax-spec
  (binding-class lsl-nt #:description "lsl binding")
- (binding-class ctc-nt #:description "contract binding")
+ (binding-class ctc-nt #:description "contract binding" #:reference-compiler ctc-ref-compiler)
  (extension-class lsl-macro #:binding-space lsl)
 
  (nonterminal/exporting
@@ -43,7 +44,6 @@
   (define-contract (def:ctc-nt arg:id ...) c:ctc)
   #:binding (export def)
 
-  
   (: v:lsl-nt c:ctc)
 
   e:lsl-def-or-expr
@@ -94,61 +94,19 @@
 
   (#%lsl-app f:lsl-expr arg:lsl-expr ...)
 
-  ;; CONTRACTS
-
-  (#%ctc-id i:ctc-nt)
-  
-  (#%ctc-app i:ctc-nt args:lsl-expr ...)
-
-  (#%Immediate ((~datum check) pred:lsl-expr)
-               ((~datum generate) gen:lsl-expr)
-               ((~datum shrink) shrk:lsl-expr)
-               ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
-
-  (~> ((~datum Immediate) ~! (~alt (~optional ((~datum check) pred:expr) #:defaults ((pred #'(lambda (_) #t))))
-                                   (~optional ((~datum generate) gen:expr) #:defaults ((gen #'#f)))
-                                   (~optional ((~datum shrink) shrk:expr) #:defaults ((shrk #'#f)))
-                                   ((~datum feature) feat-name:expr feat:expr)) ...)
-      (tag-syntax-with-unexpanded
-       #'(#%Immediate (check pred)
-                      (generate gen)
-                      (shrink shrk)
-                      (feature feat-name feat) ...)
-       this-syntax))
-
-
-  (#%Function ((~datum arguments) b:contract-rec-binding ...)
-              ((~datum result) c:ctc)
-              ;; TODO: raises
-              #;((~datum raises)))
-  #:binding (nest b ... c)
-
-  (~> ((~datum Function) ~! (~alt (~once ((~datum arguments) [x:id a:expr] ...))
-                                  (~once ((~datum result) r:expr))
-                                  ;; TODO: raises
-                                  #;(~optional (raises e:struct-id ...))) ...)
-      (tag-syntax-with-unexpanded #'(#%Function (arguments [x a] ...)
-                                                (result r))
-                                  this-syntax))
-  
-  (~> (i:id e:expr ...)
-      #:when (lookup #'i (binding-class-predicate ctc-nt))
-      #'(#%ctc-app i e ...))
-
   (~> (f:expr e:expr ...)
       #'(#%lsl-app f e ...))
 
   (~> (~or lit:number lit:string lit:boolean)
       #'(quote lit))
 
+  ;; TODO: how to get sensible errors if contracts are written in LSL position
+
   ;; conversion of identifiers to special forms to differentiate between LSL and Racket vars
   ;; see https://github.com/michaelballantyne/hosted-minikanren/blob/main/private/spec.rkt#L47
   (~> x:id
       #:when (lookup #'x (binding-class-predicate lsl-nt))
       #'(#%lsl-id x))
-  (~> x:id
-      #:when (lookup #'x (binding-class-predicate ctc-nt))
-      (tag-syntax-with-unexpanded #'(#%ctc-id x) #'x))
   (~> x:id
       #'(#%rkt-id x)))
 
@@ -176,13 +134,29 @@
   #:description "contract"
   #:binding-space lsl
   #:allow-extension lsl-macro
-  e:lsl-expr)
+  (#%ctc-id i:ctc-nt)
+  ;; TODO: contracts parameterized over other contracts
+  (#%ctc-app i:ctc-nt args:lsl-expr ...)
 
- (nonterminal/nesting
-  contract-rec-binding (hole)
-  #:binding-space lsl
-  [v:lsl-nt e:ctc]
-  #:binding (scope (bind v) e hole))
+  (#%Immediate ((~datum check) pred:lsl-expr)
+               ((~datum generate) gen:lsl-expr)
+               ((~datum shrink) shrk:lsl-expr)
+               ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
+
+  (#%Function ((~datum arguments) [v:lsl-nt e:ctc] ...)
+              ((~datum result) c:ctc))
+  #:binding (scope (bind v) ... e ... c)
+
+  (~> x:id
+      #:when (lookup #'x (binding-class-predicate ctc-nt))
+      (tag-syntax-with-unexpanded #'(#%ctc-id x) #'x))
+
+  (~> (i:id e:expr ...)
+      #:when (lookup #'i (binding-class-predicate ctc-nt))
+      #'(#%ctc-app i e ...))
+
+  (~> e:expr
+      #'(Immediate (check e))))
 
  (host-interface/definitions
   (#%lsl e:lsl-form ...)
@@ -244,3 +218,30 @@
     [(_ ((v:id b:expr) ...)
         e:expr)
      #'(#%letrec ((v b) ...) e)]))
+
+
+;; CONTRACT SUGAR
+
+(define-lsl-syntax Immediate
+  (syntax-parser
+    #:literal-sets (contract-literals)
+    [(_ ~! (~alt (~optional ((~datum check) pred:expr) #:defaults ((pred #'(lambda (_) #t))))
+                 (~optional ((~datum generate) gen:expr) #:defaults ((gen #'#f)))
+                 (~optional ((~datum shrink) shrk:expr) #:defaults ((shrk #'#f)))
+                 ((~datum feature) feat-name:expr feat:expr)) ...)
+     (tag-syntax-with-unexpanded
+      #'(#%Immediate (check pred)
+                     (generate gen)
+                     (shrink shrk)
+                     (feature feat-name feat) ...)
+      this-syntax)]))
+
+(define-lsl-syntax Function
+  (syntax-parser
+    #:literal-sets (contract-literals)
+    [(_ ~! (~alt (~once ((~datum arguments) [x:id a:expr] ...))
+                 (~once ((~datum result) r:expr))) ...)
+     (tag-syntax-with-unexpanded
+      #'(#%Function (arguments [x a] ...)
+                    (result r))
+      this-syntax)]))
