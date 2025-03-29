@@ -15,24 +15,22 @@ GRAMMAR
             | (: <lsl-id> <ctc>)
             | <lsl-def-or-expr>
 
-<ctc-id> := <id> ;; separate binding classes for ctc and lsl, so they can't be used interchangably
-<lsl-id> := <id>
+<lsl-def-or-expr> := (define <lsl-id> <lsl-expr>)
+                   | (define (<lsl-id> <lsl-id> ...) <lsl-expr>)
+                   | <lsl-expr>
+
 
 <ctc> := (Immediate (check <lsl-expr>)
                     (generate <lsl-expr>)
                     (shrink <lsl-expr>)
                     (feature <lsl-expr> <lsl-expr>) ...)
        | (Function (arguments (<id> <ctc>) ...)
-                   (result <ctc>)
+                   (result <ctc>))
        ;; TODO: other contracts
        | (<ctc-id> <lsl-expr> ...) ;; instantiation of parameterized contracts with lsl values
        | (<ctc-id> <ctc-id> ...) ;; instantiation of parameterized contracts with contracts
        | <ctc-id>
        | <lsl-expr>
-
-<lsl-def-or-expr> := (define <lsl-id> <lsl-expr>)
-                   | (define (<lsl-id> <lsl-id> ...) <lsl-expr>)
-                   | <lsl-expr>
 
 <lsl-expr> := <datum>
             | (quote <datum>)
@@ -52,6 +50,12 @@ GRAMMAR
             | (local [<local-definition> ...]
                  <lsl-expr>)
             | (<lsl-expr> <lsl-expr> ...)
+
+
+
+<ctc-id> := <id> ;; separate binding classes for ctc and lsl, so they can't be used interchangably
+<lsl-id> := <id>
+
 
 <local-definition> := (define <lsl-id> <lsl-expr>)
                     | (define (<lsl-id> <lsl-id> ...) <lsl-expr>)

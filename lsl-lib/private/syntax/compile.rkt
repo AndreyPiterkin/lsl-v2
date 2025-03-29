@@ -1,16 +1,26 @@
 #lang racket/base
 
 
-(require (for-syntax racket/class
+(require (for-syntax racket/base
+                     racket/class
+                     racket/syntax-srcloc
+                     racket/undefined
+                     racket/function
+                     racket/sequence
+                     racket/list
                      syntax/parse
+                     mischief/sort
+                     mischief/dict
+                     syntax/id-table
                      "grammar.rkt"
-                     racket/base)
+                     "../util.rkt")
          "../runtime/immediate.rkt"
          "../runtime/function.rkt"
          "../runtime/contract-common.rkt"
          "../util.rkt"
          syntax/location
          racket/stxparam
+         syntax-spec-v3
          racket/class)
 
 (provide compile-lsl
@@ -39,6 +49,52 @@
         [(_ ctc:expr)
          #'ctc])))
 
+  ;; ContractSyntax  [IdTable Identifier [List [Listof Identifier] ContractSyntax Natural]] -> [Listof [List Identifier ContractSyntax Natural]]
+  ;; Sorts the hash of identifier to their clause's free vars by constructing a DAG
+  ;; ordering.
+  ;; RAISES: Syntax error if there is a cyclic dependency, highlighting the given contract syntax
+  (define (sort-domains! stx clauses)
+    (define (cycle _)
+      (raise (exn:fail:cyclic "cannot have cyclic dependency"
+                              (current-continuation-marks)
+                              (list (syntax-srcloc stx)))))
+
+    ;; Convert free identifiers to symbols first to normalize them
+    (define id-symbols (map syntax-e (free-id-table-keys clauses)))
+  
+    ;; Create a mapping from symbols to original identifiers
+    (define sym->id 
+      (for/hash ([id (free-id-table-keys clauses)])
+        (values (syntax-e id) id)))
+  
+    ;; Create a neighbor function that works with symbols
+    (define (sym-neighbors sym)
+      (define id (hash-ref sym->id sym))
+      (define deps (car (free-id-table-ref clauses id)))
+      (map syntax-e deps))
+  
+    (define sorted-syms (topological-sort id-symbols sym-neighbors #:cycle cycle))
+  
+    ;; Convert back to identifiers
+    (define sorted-ids (map (λ (sym) (hash-ref sym->id sym)) sorted-syms))
+  
+    (map (lambda (id) (list id
+                            (second (free-id-table-ref clauses id))
+                            (third (free-id-table-ref clauses id))))
+         sorted-ids))
+
+  ;; [Listof Identifier] [Listof ContractSyntax] -> [IdTable Identifier [List [Listof Identifier] ContractSyntax Natural]]
+  ;; Constructs an association list from identifier to that argument's free var list,
+  ;; contract clause, and position
+  (define (clauses->fv-assoc ids args)
+    (define id-hash
+      (for/hash ([id ids]
+                 [arg args]
+                 [i (in-naturals)])
+        (values id
+                (list (free-identifiers arg #:allow-host? #t) arg i))))
+    (make-immutable-free-id-table id-hash))
+
   ;; SymbolSyntax ContractSyntax LslExprSyntax -> Syntax
   ;; attaches the given contract to the identifier, renaming the value if it is a procedure
   (define (attach-contract id ctc val)
@@ -66,6 +122,8 @@
 (define-syntax (compile-contract stx)
   (syntax-parse stx
     #:literal-sets (contract-literals)
+    ;; TODO: does this need to be a macro, or can it be a compile-time helper?
+    ;; TODO: compile-immediate, compile-contract, etc helpers
     [(_ (~and (#%Immediate (check pred:expr)
                            (generate g:expr)
                            (shrink shr:expr)
@@ -82,19 +140,26 @@
            (raise-syntax-error #f "invalid immediate contract (must be a predicate)" #'pred))
          (new immediate%
               [stx stx]
-              [check check]
-              [gen gen]
-              [shrink shrink]
+              [checker check]
+              [generator gen]
+              [shrinker shrink]
               [features features]))]
     [(_ (~and (#%Function (arguments (x:id c:expr) ...)
                           (result r:expr))
               stx^))
+     (define arg-fv-table (clauses->fv-assoc (attribute x) (attribute c)))
+     (define/syntax-parse ((x^ c^ i) ...) (sort-domains! #'stx^ arg-fv-table))
+     
+     (define ids (attribute x^))
+     (define/syntax-parse ((x^^ ...) ...) (build-list (length ids) (lambda (i) (take ids i))))
+     
+     (define/syntax-parse (c^^ ...) #'((compile-contract c^) ...))
+     (define/syntax-parse r^ #'(compile-contract r))
      #`(new function%
             [stx #'#,(syntax-property #'stx^ 'unexpanded)]
-            [arg-order (list)]
-            [args (list (cons (make-contract-to-lsl-boundary (compile-lsl 'x))
-                              (compile-contract c)) ...)]
-            [result (make-contract-to-lsl-boundary (compile-lsl 'r))])]
+            [domain-order (list (#%datum . i) ...)]
+            [domains (list (lambda* (x^^ ...) c^^) ...)]
+            [codomain (lambda* (x^ ...) r^)])]
     [(_ (#%ctc-id i:id))
      #'(if (procedure? i)
            (raise-syntax-error #f "must instantiate parameterized contract" #'i)
@@ -115,11 +180,12 @@
     [(_ (#%lsl-id e:id)) #'e]
     [(_ (~and (#%lambda (args ...) e) stx^))
      #'(lambda (args ...) (compile-lsl e))]
-    [(_ (#%lsl-app f args ...)) #'((compile-lsl f) (compile-lsl args) ...)]
+    [(_ (#%lsl-app f args ...)) #'(#%app (compile-lsl f) (compile-lsl args) ...)]
     [(_ (#%let ((b e) ...) body)) #'(let ((b (compile-lsl e)) ...) (compile-lsl body))]
     [(_ (#%let* ((b e) ...) body)) #'(let* ((b (compile-lsl e)) ...) (compile-lsl body))]
     [(_ (#%letrec ((b e) ...) body)) #'(letrec ((b (compile-lsl e)) ...) (compile-lsl body))]
     [(_ (#%define v b))
+     ;; TODO: both these forms should be helper functions
      (define maybe-ctc (contract-table-ref #'v))
      (define/syntax-parse body #'(compile-lsl b))
      (if maybe-ctc
@@ -162,4 +228,13 @@
   (if (procedure? val)
       (procedure-rename val name)
       val))
+
+;; TODO: move this helper macro
+(define-syntax lambda*
+  (syntax-parser
+    [(_ (x:id ...) e:expr)
+     #:with (x* ...)
+     (for/list ([x (in-syntax #'(x ...))])
+       (if (eq? (syntax-e x) '_) (gensym) x))
+     #'(lambda (x* ...) e)]))
 

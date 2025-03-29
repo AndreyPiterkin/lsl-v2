@@ -3,7 +3,33 @@
 (define-contract (Divides n) (lambda (x) (zero? (modulo n x))))
 
 (: x (Divides (+ 5 5)))
-(define x 2)
+(define x 3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ;; EXPANDS TO:
 #;(begin
@@ -13,13 +39,18 @@
         ;; ensures usage of contracts references is allowed within the contract definition
         (syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
           ;; ensure when compiling pred--an lsl expression--that contracts refs are no longer valid
-          (let ([check (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)]) (lambda (x) (zero? (modulo n x))))]
-                [gen (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)]) #f)]
-                [shrink (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)]) #f)]
-                [features (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)]) #f)]
+          (let ([check (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)])
+                         (lambda (x) (zero? (modulo n x))))]
+                [gen (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)])
+                       #f)]
+                [shrink (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)])
+                          #f)]
+                [features (syntax-parameterize ([contract-pos (make-invalid-contract-transformer)])
+                            #f)]
                 [stx #'(lambda (x) (zero? (modulo n x)))])
             (unless (procedure? check)
-              (raise-syntax-error #f "invalid immediate contract (must be a predicate)" #'(lambda (x) (zero? (modulo n x)))))
+              (raise-syntax-error #f "invalid immediate contract (must be a predicate)"
+                                  #'(lambda (x) (zero? (modulo n x)))))
             (new immediate%
                  [stx stx]
                  [check check]

@@ -28,8 +28,8 @@
          [x:id (syntax/loc #'x (contract-pos x))])))))
 
 (syntax-spec
- (binding-class lsl-nt #:description "lsl binding")
- (binding-class ctc-nt #:description "contract binding" #:reference-compiler ctc-ref-compiler)
+ (binding-class lsl-id #:description "lsl binding")
+ (binding-class ctc-id #:description "contract binding" #:reference-compiler ctc-ref-compiler)
  (extension-class lsl-macro #:binding-space lsl)
 
  (nonterminal/exporting
@@ -38,13 +38,13 @@
   #:binding-space lsl
   #:allow-extension lsl-macro
   ;; TODO: should contract forms only be top level?
-  (define-contract def:ctc-nt c:ctc)
+  (define-contract def:ctc-id c:ctc)
   #:binding (export def)
 
-  (define-contract (def:ctc-nt arg:id ...) c:ctc)
+  (define-contract (def:ctc-id arg:id ...) c:ctc)
   #:binding (export def)
 
-  (: v:lsl-nt c:ctc)
+  (: v:lsl-id c:ctc)
 
   e:lsl-def-or-expr
   #:binding (re-export e))
@@ -54,7 +54,7 @@
   #:description "lsl definition or expression"
   #:binding-space lsl
   #:allow-extension lsl-macro
-  (#%define v:lsl-nt e:lsl-expr)
+  (#%define v:lsl-id e:lsl-expr)
   #:binding (export v)
 
   e:lsl-expr)
@@ -66,7 +66,7 @@
   #:allow-extension lsl-macro
 
   (quote t:literal)
-  (#%lsl-id i:lsl-nt)
+  (#%lsl-id i:lsl-id)
   (#%rkt-id e:racket-expr)
 
   ;; TODO: optional else clause
@@ -77,10 +77,10 @@
       t:lsl-expr
       e:lsl-expr)
 
-  (#%lambda (v:lsl-nt ...) b:lsl-expr)
+  (#%lambda (v:lsl-id ...) b:lsl-expr)
   #:binding (scope (bind v) ... b)
 
-  (#%let ([v:lsl-nt e:lsl-expr] ...)
+  (#%let ([v:lsl-id e:lsl-expr] ...)
          b:lsl-expr)
   #:binding (scope (bind v) ... b)
 
@@ -105,7 +105,7 @@
   ;; conversion of identifiers to special forms to differentiate between LSL and Racket vars
   ;; see https://github.com/michaelballantyne/hosted-minikanren/blob/main/private/spec.rkt#L47
   (~> x:id
-      #:when (lookup #'x (binding-class-predicate lsl-nt))
+      #:when (lookup #'x (binding-class-predicate lsl-id))
       #'(#%lsl-id x))
   (~> x:id
       #'(#%rkt-id x)))
@@ -120,13 +120,13 @@
  (nonterminal/nesting
   binding (hole)
   #:binding-space lsl
-  [v:lsl-nt e:lsl-expr]
+  [v:lsl-id e:lsl-expr]
   #:binding (scope (bind v) hole))
 
  (nonterminal/nesting
   rec-binding (hole)
   #:binding-space lsl
-  [v:lsl-nt e:lsl-expr]
+  [v:lsl-id e:lsl-expr]
   #:binding (scope (bind v) e hole))
 
  (nonterminal
@@ -134,25 +134,25 @@
   #:description "contract"
   #:binding-space lsl
   #:allow-extension lsl-macro
-  (#%ctc-id i:ctc-nt)
+  (#%ctc-id i:ctc-id)
   ;; TODO: contracts parameterized over other contracts
-  (#%ctc-app i:ctc-nt args:lsl-expr ...)
+  (#%ctc-app i:ctc-id args:lsl-expr ...)
 
   (#%Immediate ((~datum check) pred:lsl-expr)
                ((~datum generate) gen:lsl-expr)
                ((~datum shrink) shrk:lsl-expr)
                ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
 
-  (#%Function ((~datum arguments) [v:lsl-nt e:ctc] ...)
+  (#%Function ((~datum arguments) [v:lsl-id e:ctc] ...)
               ((~datum result) c:ctc))
   #:binding (scope (bind v) ... e ... c)
 
   (~> x:id
-      #:when (lookup #'x (binding-class-predicate ctc-nt))
+      #:when (lookup #'x (binding-class-predicate ctc-id))
       (tag-syntax-with-unexpanded #'(#%ctc-id x) #'x))
 
   (~> (i:id e:expr ...)
-      #:when (lookup #'i (binding-class-predicate ctc-nt))
+      #:when (lookup #'i (binding-class-predicate ctc-id))
       #'(#%ctc-app i e ...))
 
   (~> e:expr
@@ -161,10 +161,12 @@
  (host-interface/definitions
   (#%lsl e:lsl-form ...)
   #:binding ((re-export e) ...)
+  ;; TODO: sensible errors for contracts in lsl pos, static check?
   #'(begin (compile-lsl e) ...)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; special forms
+;; TODO: move these into a sugar file
 
 (define-syntax define-lsl-syntax
   (syntax-parser
