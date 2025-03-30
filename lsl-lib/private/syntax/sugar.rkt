@@ -86,19 +86,15 @@
                  (~optional ((~datum generate) gen:expr) #:defaults ((gen #'#f)))
                  (~optional ((~datum shrink) shrk:expr) #:defaults ((shrk #'#f)))
                  ((~datum feature) feat-name:expr feat:expr)) ...)
-     (tag-syntax-with-unexpanded
-      #'(#%Immediate (check pred)
-                     (generate gen)
-                     (shrink shrk)
-                     (feature feat-name feat) ...)
-      this-syntax)]))
+     #'(#%Immediate (check pred)
+                    (generate gen)
+                    (shrink shrk)
+                    (feature feat-name feat) ...)]))
 
 (define-lsl-syntax Function
   (syntax-parser
     #:literal-sets (contract-literals)
     [(_ ~! (~alt (~once ((~datum arguments) [x:id a:expr] ...))
                  (~once ((~datum result) r:expr))) ...)
-     (tag-syntax-with-unexpanded
-      #'(#%Function (arguments [x a] ...)
-                    (result r))
-      this-syntax)]))
+     #'(#%Function (arguments [x a] ...)
+                   (result r))]))
