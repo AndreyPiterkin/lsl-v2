@@ -11,7 +11,6 @@
                                 string)))
 
 (provide (all-defined-out)
-         ;; TODO: don't provide all out, only the forms students should be able to write
          (for-syntax (all-defined-out))
          (for-space lsl (all-defined-out)))
 
@@ -72,6 +71,9 @@
   ;; TODO: optional else clause
   (cond [c:lsl-expr e:lsl-expr] ...
         [(~datum else) else:lsl-expr])
+
+  ;; TODO: other core/special forms: and, or, set!, require, define-struct,
+  ;;                                 define-mutable-struct, raise
 
   (if c:lsl-expr
       t:lsl-expr
