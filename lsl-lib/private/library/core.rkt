@@ -1,16 +1,18 @@
 #lang racket
 
-(require
-  (for-space lsl "../syntax/spec.rkt")
-  "../syntax/spec.rkt")
+(require "../syntax/spec.rkt"
+         "../syntax/sugar.rkt"
+         racket/provide)
 
 (provide #%top-interaction
          #%app
          #%top
          #%datum
-         quote
          (rename-out [#%lsl #%module-begin]))
 
-;; TODO: only provide-out sugar and available student forms (nothing beginning with #%)
-(provide (all-from-out "../syntax/spec.rkt")
-         (for-space lsl (all-from-out "../syntax/spec.rkt")))
+(provide (all-from-out "../syntax/sugar.rkt")
+         (except-out (all-from-out "../syntax/spec.rkt")
+                     (filtered-out
+                      (lambda (export) (and (regexp-match? #rx"^#%" export)
+                                            export))
+                      (all-from-out "../syntax/spec.rkt"))))

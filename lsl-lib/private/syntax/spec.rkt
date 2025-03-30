@@ -4,13 +4,11 @@
          "compile.rkt"
          (for-syntax syntax/parse
                      "compile.rkt"
-                     "grammar.rkt"
-                     racket/list
                      (only-in syntax-spec-v3/private/ee-lib/main lookup in-space)
                      (except-in racket/base
                                 string)))
 
-(provide (all-defined-out)
+(provide #%lsl
          (for-syntax (all-defined-out))
          (for-space lsl (all-defined-out)))
 
@@ -36,7 +34,8 @@
   #:description "lsl form"
   #:binding-space lsl
   #:allow-extension lsl-macro
-  ;; TODO: should contract forms only be top level?
+
+  ;; Contracts are only allowed as top-level expressions
   (define-contract def:ctc-id c:ctc)
   #:binding (export def)
 
@@ -97,10 +96,10 @@
   (#%lsl-app f:lsl-expr arg:lsl-expr ...)
 
   (~> (f:expr e:expr ...)
-      #'(#%lsl-app f e ...))
+      (tag-syntax-with-unexpanded #'(#%lsl-app f e ...) this-syntax))
 
   (~> (~or lit:number lit:string lit:boolean)
-      #'(quote lit))
+      (tag-syntax-with-unexpanded #'(quote lit) this-syntax))
 
   ;; TODO: how to get sensible errors if contracts are written in LSL position
 
@@ -108,9 +107,9 @@
   ;; see https://github.com/michaelballantyne/hosted-minikanren/blob/main/private/spec.rkt#L47
   (~> x:id
       #:when (lookup #'x (binding-class-predicate lsl-id))
-      #'(#%lsl-id x))
+      (tag-syntax-with-unexpanded #'(#%lsl-id x) this-syntax))
   (~> x:id
-      #'(#%rkt-id x)))
+      (tag-syntax-with-unexpanded #'(#%rkt-id x) this-syntax)))
 
  (nonterminal literal
               #:description "literal value"
@@ -151,101 +150,17 @@
 
   (~> x:id
       #:when (lookup #'x (binding-class-predicate ctc-id))
-      (tag-syntax-with-unexpanded #'(#%ctc-id x) #'x))
+      (tag-syntax-with-unexpanded #'(#%ctc-id x) this-syntax))
 
   (~> (i:id e:expr ...)
       #:when (lookup #'i (binding-class-predicate ctc-id))
-      #'(#%ctc-app i e ...))
+      (tag-syntax-with-unexpanded #'(#%ctc-app i e ...) this-syntax))
 
+  ;; TODO: if I expand to `Immediate`, it enters an infinite loop?
   (~> e:expr
-      #'(Immediate (check e))))
+      (tag-syntax-with-unexpanded #'(#%Immediate (check e) (generate #f) (shrink #f)) this-syntax)))
 
  (host-interface/definitions
   (#%lsl e:lsl-form ...)
   #:binding ((re-export e) ...)
-  ;; TODO: sensible errors for contracts in lsl pos, static check?
   #'(begin (compile-lsl e) ...)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; special forms
-;; TODO: move these into a sugar file
-
-(define-syntax define-lsl-syntax
-  (syntax-parser
-    [(_ name:id transformer:expr)
-     #'(define-dsl-syntax name lsl-macro transformer)]))
-
-(define-lsl-syntax define
-  (syntax-parser
-    [(_ (x:id args:id ...)
-        e:expr)
-     #'(#%define x (#%lambda (args ...) e))]
-    [(_ x:id e:expr)
-     #'(#%define x e)]))
-
-(define-lsl-syntax lambda
-  (syntax-parser
-    [(_ (args:id ...)
-        e:expr)
-     #'(#%lambda (args ...) e)]))
-
-(define-lsl-syntax local
-  (syntax-parser
-    #:datum-literals (define)
-    [(_ ((define v:id b:expr) ...)
-        e:expr)
-     (define duplicate (check-duplicates (attribute v) bound-identifier=?))
-     (when duplicate
-       (raise-syntax-error #f "duplicate binding in local" duplicate))
-     #'(#%let* ([v b] ...) e)]
-    [(_ ((define (v:id args:id ...) b:expr) ...)
-        e:expr)
-     (define duplicate (check-duplicates (attribute v) bound-identifier=?))
-     (when duplicate
-       (raise-syntax-error #f "duplicate binding" duplicate))
-     #'(#%let* ([v (#%lambda (args ...) b)] ...) e)]))
-
-(define-lsl-syntax let
-  (syntax-parser
-    [(_ ((v:id b:expr) ...)
-        e:expr)
-     #'(#%let ((v b) ...) e)]))
-
-(define-lsl-syntax let*
-  (syntax-parser
-    [(_ ((v:id b:expr) ...)
-        e:expr)
-     #'(#%let* ((v b) ...) e)]))
-
-(define-lsl-syntax letrec
-  (syntax-parser
-    [(_ ((v:id b:expr) ...)
-        e:expr)
-     #'(#%letrec ((v b) ...) e)]))
-
-
-;; CONTRACT SUGAR
-
-(define-lsl-syntax Immediate
-  (syntax-parser
-    #:literal-sets (contract-literals)
-    [(_ ~! (~alt (~optional ((~datum check) pred:expr) #:defaults ((pred #'(lambda (_) #t))))
-                 (~optional ((~datum generate) gen:expr) #:defaults ((gen #'#f)))
-                 (~optional ((~datum shrink) shrk:expr) #:defaults ((shrk #'#f)))
-                 ((~datum feature) feat-name:expr feat:expr)) ...)
-     (tag-syntax-with-unexpanded
-      #'(#%Immediate (check pred)
-                     (generate gen)
-                     (shrink shrk)
-                     (feature feat-name feat) ...)
-      this-syntax)]))
-
-(define-lsl-syntax Function
-  (syntax-parser
-    #:literal-sets (contract-literals)
-    [(_ ~! (~alt (~once ((~datum arguments) [x:id a:expr] ...))
-                 (~once ((~datum result) r:expr))) ...)
-     (tag-syntax-with-unexpanded
-      #'(#%Function (arguments [x a] ...)
-                    (result r))
-      this-syntax)]))

@@ -59,23 +59,18 @@
                               (current-continuation-marks)
                               (list (syntax-srcloc stx)))))
 
-    ;; Convert free identifiers to symbols first to normalize them
     (define id-symbols (map syntax-e (free-id-table-keys clauses)))
   
-    ;; Create a mapping from symbols to original identifiers
     (define sym->id 
       (for/hash ([id (free-id-table-keys clauses)])
         (values (syntax-e id) id)))
   
-    ;; Create a neighbor function that works with symbols
     (define (sym-neighbors sym)
       (define id (hash-ref sym->id sym))
       (define deps (car (free-id-table-ref clauses id)))
       (map syntax-e deps))
   
     (define sorted-syms (topological-sort id-symbols sym-neighbors #:cycle cycle))
-  
-    ;; Convert back to identifiers
     (define sorted-ids (map (λ (sym) (hash-ref sym->id sym)) sorted-syms))
   
     (map (lambda (id) (list id
