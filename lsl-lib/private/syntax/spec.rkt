@@ -6,6 +6,7 @@
          (for-syntax syntax/parse
                      "compile.rkt"
                      "compile-util.rkt"
+                     syntax/id-table
                      (only-in syntax-spec-v3/private/ee-lib/main lookup in-space)
                      (except-in racket/base
                                 string)))

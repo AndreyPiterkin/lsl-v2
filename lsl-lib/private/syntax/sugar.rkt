@@ -2,9 +2,11 @@
 
 (require syntax-spec-v3
          "spec.rkt"
-         (for-syntax racket/base
+         "compile-util.rkt"
+         (for-syntax (except-in racket/base string)
                      racket/list
                      syntax/parse
+                     syntax/id-table
                      "spec.rkt"
                      "grammar.rkt"))
 
@@ -32,7 +34,6 @@
   (syntax-parser
     [(_ (x:id args:id ...)
         e:expr)
-     ;; TODO: static check for recursive contracts being instantiated with the same type?
      #'(#%define-contract x (#%contract-lambda (args ...) e))]
     [(_ x:id e:expr)
      #'(#%define-contract x e)]))
