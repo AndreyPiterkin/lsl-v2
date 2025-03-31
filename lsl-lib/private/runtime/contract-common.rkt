@@ -15,7 +15,9 @@
          blame->polarity
          (struct-out exn:fail:lsl:contract)
          unimplemented-error!
-         contract-error)
+         contract-error
+         rt-attach-contract
+         rt-rename-if-proc)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; parameters
@@ -33,12 +35,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; exn functions
 
-;; Symbol -> !
+;; Symbol -> Void
 ;; Raises a user error that the given name is not implemented
 (define (unimplemented-error! name)
   (raise-user-error name "is not implemented"))
 
-;; Contract Syntax Any Blame -> !
+;; Contract Syntax Any Blame -> Void
 ;; Raises a contract error for the given offending value and its attached contract and blame
 (define (contract-error _ctc stx val blm
                         #:expected [expected (syntax->datum stx)]
@@ -51,6 +53,8 @@
       [_ (format UNK-CTC-FMT expected given)]))
   (custom-error stx error-msg))
 
+;; ContractSyntax String -> Void
+;; Raises an error with the given syntax used for source location info and the given message.
 (define (custom-error stx msg)
   (define cms (current-continuation-marks))
   (define stx-srclocs
@@ -106,3 +110,18 @@
 
 (define (blame->polarity blm)
   (if (positive-blame? blm) "server" "client"))
+
+;; PositiveBlame NegativeBlame Contract Any -> Any
+;; Attaches the contract to the given value with the corresponding blame targets, returning the
+;; value itself if it passes contract check.
+(define (rt-attach-contract pos neg ctc val)
+  ((send ctc protect val pos)
+   val
+   neg))
+
+;; Symbol Any -> Any
+;; If the given _val_ is a procedure, renames it to the given name, otherwise leaves it untouched.
+(define (rt-rename-if-proc name val)
+  (if (procedure? val)
+      (procedure-rename val name)
+      val))

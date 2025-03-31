@@ -26,7 +26,6 @@ GRAMMAR
                     (feature <lsl-expr> <lsl-expr>) ...)
        | (Function (arguments (<id> <ctc>) ...)
                    (result <ctc>))
-       ;; TODO: other contracts
        | (<ctc-id> <lsl-expr> ...) ;; instantiation of parameterized contracts with lsl values
        | (<ctc-id> <ctc-id> ...) ;; instantiation of parameterized contracts with contracts
        | <ctc-id>
@@ -62,8 +61,6 @@ GRAMMAR
 
 
 |#
-
-
 
 
 ;; Set of literals that belong in lsl-form position

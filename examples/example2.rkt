@@ -7,4 +7,4 @@
 (define (times n m)
   (* n m))
 
-(times 2 1)
+(times 1 2)
