@@ -8,15 +8,7 @@
                      "spec.rkt"
                      "grammar.rkt"))
 
-(provide (for-space lsl
-                    define
-                    lambda
-                    local
-                    let
-                    letrec
-                    let*
-                    Immediate
-                    Function))
+(provide (for-space lsl (all-defined-out)))
 
 (define-syntax define-lsl-syntax
   (syntax-parser
@@ -98,3 +90,9 @@
                  (~once ((~datum result) r:expr))) ...)
      #'(#%Function (arguments [x a] ...)
                    (result r))]))
+
+(define-lsl-syntax OneOf
+  (syntax-parser
+    #:literal-sets (contract-literals)
+    [(_ ~! c:expr ...)
+     #'(#%OneOf c ...)]))

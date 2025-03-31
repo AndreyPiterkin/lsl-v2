@@ -9,6 +9,7 @@
          "../runtime/contract-common.rkt"
          "../runtime/immediate.rkt"
          "../runtime/function.rkt"
+         "../runtime/oneof.rkt"
          "../util.rkt"
          "compile-util.rkt"
          syntax-spec-v3
@@ -125,18 +126,14 @@
                           (result r:expr))
               function-stx))
      (compile-function #'function-stx)]
+    [(_ (~and (#%OneOf e:expr ...) oneof-stx))
+     (compile-oneof #'oneof-stx)]
     [(_ (#%ctc-id i:id))
      #'(rt-validate-contract-id i #'i)]
     [(_ (#%ctc-app i:id e:expr ...))
      #'(i (make-contract-to-lsl-boundary (compile-lsl e)) ...)]))
 
 (begin-for-syntax
-  ;; Given a cons of syntax, extract the last one
-  (define (get-last-unexpanded lostx)
-    (if (cons? lostx)
-        (get-last-unexpanded (cdr lostx))
-        lostx))
-  
   ;; ImmediateCtcStx -> RuntimeCtcStx
   ;; Compiles the immediate contract into its runtime representation
   (define compile-immediate
@@ -146,6 +143,8 @@
           (generate g)
           (shrink shr)
           (feature name feat) ...)
+       ;; TODO: somehow introduce unexpanded into scope so all compile-xyzcontract functions dont
+       ;; have to do this themselves?
        (define/syntax-parse unexpanded
          (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
 
@@ -172,7 +171,6 @@
     (syntax-parser
       [(_ (arguments (x c) ...)
           (result r))
-
        (define/syntax-parse unexpanded
          (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
        (define arg-clauses (compute-arg-clause-mapping (attribute x) (attribute c)))
@@ -187,4 +185,16 @@
               [stx #'unexpanded]
               [domain-order (list (#%datum . i) ...)]
               [domains (list (lambda* (x^^ ...) c^^) ...)]
-              [codomain (lambda* (x^ ...) r^)])])))
+              [codomain (lambda* (x^ ...) r^)])]))
+
+  ;; OneOfCtcStx -> RuntimeCtcStx
+  ;; Compiles the given oneof contract
+  (define compile-oneof
+    (syntax-parser
+      [(_ c ...)
+       (define/syntax-parse unexpanded
+         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
+       (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
+       #'(new oneof%
+              [stx #'unexpanded]
+              [disjuncts (list compiled-ctc ...)])])))

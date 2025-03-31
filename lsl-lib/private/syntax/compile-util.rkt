@@ -114,4 +114,10 @@
 
 (begin-for-syntax
   (define-syntax-class string
-    (pattern val #:when (string? (syntax-e #'val)))))
+    (pattern val #:when (string? (syntax-e #'val))))
+
+  ;; Given a cons of syntax, extract the last one
+  (define (get-last-unexpanded lostx)
+    (if (cons? lostx)
+        (get-last-unexpanded (cdr lostx))
+        lostx)))
