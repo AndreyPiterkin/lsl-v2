@@ -32,6 +32,7 @@
   (syntax-parser
     [(_ (x:id args:id ...)
         e:expr)
+     ;; TODO: static check for recursive contracts being instantiated with the same type?
      #'(#%define-contract x (#%contract-lambda (args ...) e))]
     [(_ x:id e:expr)
      #'(#%define-contract x e)]))
@@ -112,3 +113,16 @@
     #:literal-sets (contract-literals)
     [(_ ~! c:expr ...)
      #'(#%AllOf c ...)]))
+
+(define-lsl-syntax List
+  (syntax-parser
+    #:literal-sets (contract-literals)
+    [(_ ~! c:expr)
+     #'(#%List c)]))
+
+(define-lsl-syntax Tuple
+  (syntax-parser
+    #:literal-sets (contract-literals)
+    [(_ ~! c:expr ...)
+     #'(#%Tuple c ...)]))
+

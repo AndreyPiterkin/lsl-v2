@@ -136,7 +136,7 @@
   #:binding-space lsl
   #:allow-extension lsl-macro
   (#%ctc-id i:ctc-id)
-  
+
   (#%contract-lambda (arg:ctc-id ...) c:ctc)
   #:binding (scope (bind arg) ... c)
 
@@ -153,6 +153,8 @@
 
   (#%OneOf c:ctc ...)
   (#%AllOf c:ctc ...)
+  (#%Tuple c:ctc ...)
+  (#%List c:ctc)
 
   (~> x:id
       #:when (lookup #'x (binding-class-predicate ctc-id))

@@ -11,10 +11,13 @@
          "../runtime/function.rkt"
          "../runtime/oneof.rkt"
          "../runtime/allof.rkt"
+         "../runtime/list.rkt"
+         "../runtime/lazy.rkt"
          "../util.rkt"
          "compile-util.rkt"
          syntax-spec-v3
          racket/class
+         racket/promise
          syntax/location)
 
 (provide compile-lsl)
@@ -104,11 +107,7 @@
   (define (compile-define-contract def-ctc-stx)
     (syntax-parse def-ctc-stx
       [(_ name contract)
-       #'(define name (make-lsl-to-contract-boundary (compile-contract contract)))]
-      [(_ (name args ...) contract)
-       #'(define name
-           (lambda (args ...)
-             (make-lsl-to-contract-boundary (compile-contract contract))))])))
+       #'(define name (make-lsl-to-contract-boundary (compile-contract contract)))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; COMPILE-CONTRACT
@@ -131,12 +130,16 @@
      (compile-oneof #'oneof-stx)]
     [(_ (~and (#%AllOf e:expr ...) allof-stx))
      (compile-allof #'allof-stx)]
+    [(_ (~and (#%List e:expr) list-stx))
+     (compile-list #'list-stx)]
+    [(_ (~and (#%Tuple e:expr ...) tuple-stx))
+     (compile-tuple #'tuple-stx)]
     [(_ (#%ctc-id i:id))
      #'(rt-validate-contract-id i #'i)]
     [(_ (#%contract-lambda (arg:id ...) c:expr))
      #'(lambda (arg ...) (compile-contract c))]
-    [(_ (#%ctc-app i:id e:expr ...))
-     #'(i (compile-contract e) ...)]))
+    [(_ (~and (#%ctc-app i:id e:expr ...) app-stx))
+     (compile-app #'app-stx)]))
 
 (begin-for-syntax
   ;; ImmediateCtcStx -> RuntimeCtcStx
@@ -214,4 +217,43 @@
        (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
        #'(new allof%
               [stx #'unexpanded]
-              [conjuncts (list compiled-ctc ...)])])))
+              [conjuncts (list compiled-ctc ...)])]))
+
+  ;; ListCtcStx -> RuntimeCtcStx
+  ;; Compiles the given list contract
+  (define compile-list
+    (syntax-parser
+      [(_ c)
+       (define/syntax-parse unexpanded
+         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
+       (define/syntax-parse compiled-ctc #'(compile-contract c))
+       #'(new list%
+              [stx #'unexpanded]
+              [fixed? #f]
+              [contracts (list compiled-ctc)])]))
+
+  ;; TupleCtcStx -> RuntimeCtcStx
+  ;; Compiles the given tuple contract
+  (define compile-tuple
+    (syntax-parser
+      [(_ c ...)
+       (define/syntax-parse unexpanded
+         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
+       (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
+       #'(new list%
+              [stx #'unexpanded]
+              [fixed? #t]
+              [contracts (list compiled-ctc ...)])]))
+
+  ;; AppCtcStx -> RuntimeCtcSyntax
+  ;; Compiles the given contract instantiation to a lazy contract, to avoid
+  ;; infinite recursion when instantiating the contract if it is recursive
+  (define compile-app
+    (syntax-parser
+      [(_ i c ...)
+       (define/syntax-parse unexpanded
+         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
+       (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
+       #'(new lazy%
+              [stx #'unexpanded]
+              [promise (delay (#%app i compiled-ctc ...))])])))

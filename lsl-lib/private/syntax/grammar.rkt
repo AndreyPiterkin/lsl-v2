@@ -74,5 +74,7 @@ GRAMMAR
                     #%Immediate check generate shrink feature
                     #%Function arguments result raises
                     #%OneOf
-                    #%AllOf)
+                    #%AllOf
+                    #%List
+                    #%Tuple)
   ())
