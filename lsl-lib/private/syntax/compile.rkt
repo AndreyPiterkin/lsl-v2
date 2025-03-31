@@ -148,7 +148,7 @@
           (feature name feat) ...)
        (define/syntax-parse unexpanded
          (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
-       
+
        (define/syntax-parse check #'(make-contract-to-lsl-boundary (compile-lsl pred)))
        (define/syntax-parse gen #'(make-contract-to-lsl-boundary (compile-lsl g)))
        (define/syntax-parse shrink #'(make-contract-to-lsl-boundary (compile-lsl shr)))
@@ -156,7 +156,7 @@
          #'(list (list (make-contract-to-lsl-boundary (compile-lsl name))
                        (make-contract-to-lsl-boundary (compile-lsl feat)))
                  ...))
-       
+
        #'(let ([check^ check])
            (rt-validate-flat-contract! check^ #'pred)
            (new immediate%
@@ -172,15 +172,15 @@
     (syntax-parser
       [(_ (arguments (x c) ...)
           (result r))
+
        (define/syntax-parse unexpanded
          (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
+       (define arg-clauses (compute-arg-clause-mapping (attribute x) (attribute c)))
+       (define/syntax-parse ((x^ c^ i) ...) (order-clauses this-syntax arg-clauses))
 
-       (define arg-fv-table (clauses->fv-assoc (attribute x) (attribute c)))
-       (define/syntax-parse ((x^ c^ i) ...) (sort-domains! #'stx^ arg-fv-table))
-     
        (define ids (attribute x^))
        (define/syntax-parse ((x^^ ...) ...) (build-list (length ids) (lambda (i) (take ids i))))
-     
+
        (define/syntax-parse (c^^ ...) #'((compile-contract c^) ...))
        (define/syntax-parse r^ #'(compile-contract r))
        #`(new function%

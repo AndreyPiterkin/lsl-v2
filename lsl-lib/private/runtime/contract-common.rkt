@@ -85,7 +85,7 @@
    "\n  "))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; contract
+;; contract core
 
 (define contract%
   (class object%
@@ -112,6 +112,9 @@
 
 (define (blame->polarity blm)
   (if (positive-blame? blm) "server" "client"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; miscellaneus runtime code
 
 ;; PositiveBlame NegativeBlame Contract Any -> Any
 ;; Attaches the contract to the given value with the corresponding blame targets, returning the

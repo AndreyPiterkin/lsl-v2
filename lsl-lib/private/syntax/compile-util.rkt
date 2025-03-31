@@ -54,46 +54,51 @@
 ;; dependent function contract compilation
 
 (begin-for-syntax
-  ;; ContractSyntax  [IdTable Identifier [List [Listof Identifier] ContractSyntax Natural]] -> [Listof [List Identifier ContractSyntax Natural]]
-  ;; Sorts the hash of identifier to their clause's free vars by constructing a DAG
-  ;; ordering.
+  ;; An ArgClause is a (arg-clause Identifier [Listof Identifier] ContractSyntax Natural])
+  ;; Stores the relevant information about an arm of a dependent function contract
+  ;; the argument id, the free variables, the contract, and the position in the arg list.
+  (struct arg-clause (id deps ctc-stx pos))
+
+  ;; [Listof Identifier] [Listof ContractSyntax] -> [Hash Symbol ArgClause]
+  ;; Constructs a hashtable from symbol to ArgClause
+  (define (compute-arg-clause-mapping ids args)
+    (for/hash ([id ids]
+               [arg args]
+               [i (in-naturals)])
+      (values (syntax->datum id)
+              (arg-clause id (free-identifiers arg #:allow-host? #t) arg i))))
+
+  ;; [Hash Symbol ArgClause] -> Symbol -> [Listof Symbol]
+  ;; Get the "neighbors"--the depedencies of the computed arg clause--as symbols for top sort
+  (define ((get-deps mapping) key)
+    (define clause (hash-ref mapping key))
+    (define deps (arg-clause-deps clause))
+    (map syntax->datum deps))
+
+
+  ;; [Hash Symbol ArgClause] -> Symbol -> [List Identifier ContractSyntax Natural]
+  ;; Extracts all but the dependencies of the computed arg-clause as a list for unpacking
+  ;; in syntax-parse
+  (define ((key->ordered-mapping mapping) key)
+    (define clause (hash-ref mapping key))
+    (list (arg-clause-id clause)
+          (arg-clause-ctc-stx clause)
+          (arg-clause-pos clause)))
+
+  ;; ContractSyntax [Hash Symbol ArgClause] -> [Listof [List Identifier ContractSyntax Natural]]
+  ;; Given the argument clauses, produce a topologically sorted list of function contract arms.
   ;; RAISES: Syntax error if there is a cyclic dependency, highlighting the given contract syntax
-  (define (sort-domains! stx clauses)
+  (define (order-clauses stx args)
     (define (cycle _)
       (raise (exn:fail:cyclic "cannot have cyclic dependency"
                               (current-continuation-marks)
                               (list (syntax-srcloc stx)))))
-
-    (define id-symbols (map syntax-e (free-id-table-keys clauses)))
-  
-    (define sym->id 
-      (for/hash ([id (free-id-table-keys clauses)])
-        (values (syntax-e id) id)))
-  
-    (define (sym-neighbors sym)
-      (define id (hash-ref sym->id sym))
-      (define deps (car (free-id-table-ref clauses id)))
-      (map syntax-e deps))
-  
-    (define sorted-syms (topological-sort id-symbols sym-neighbors #:cycle cycle))
-    (define sorted-ids (map (λ (sym) (hash-ref sym->id sym)) sorted-syms))
-  
-    (map (lambda (id) (list id
-                            (second (free-id-table-ref clauses id))
-                            (third (free-id-table-ref clauses id))))
-         sorted-ids))
-
-  ;; [Listof Identifier] [Listof ContractSyntax] -> [IdTable Identifier [List [Listof Identifier] ContractSyntax Natural]]
-  ;; Constructs an association list from identifier to that argument's free var list,
-  ;; contract clause, and position
-  (define (clauses->fv-assoc ids args)
-    (define id-hash
-      (for/hash ([id ids]
-                 [arg args]
-                 [i (in-naturals)])
-        (values id
-                (list (free-identifiers arg #:allow-host? #t) arg i))))
-    (make-immutable-free-id-table id-hash)))
+    (define sorted-args
+      (topological-sort (hash-keys args)
+                        (get-deps args)
+                        #:cycle cycle))
+    (map (key->ordered-mapping args)
+         sorted-args)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; misc
