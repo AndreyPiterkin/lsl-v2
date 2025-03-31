@@ -38,16 +38,14 @@
   #:allow-extension lsl-macro
 
   ;; Contracts are only allowed as top-level expressions
-  (define-contract def:ctc-id c:ctc)
-  #:binding (export def)
-
-  (define-contract (def:ctc-id arg:id ...) c:ctc)
+  (#%define-contract def:ctc-id c:ctc)
   #:binding (export def)
 
   (: v:lsl-id c:ctc)
 
   e:lsl-def-or-expr
   #:binding (re-export e))
+
 
  (nonterminal/exporting
   lsl-def-or-expr
@@ -138,8 +136,11 @@
   #:binding-space lsl
   #:allow-extension lsl-macro
   (#%ctc-id i:ctc-id)
-  ;; TODO: contracts parameterized over other contracts
-  (#%ctc-app i:ctc-id args:lsl-expr ...)
+  
+  (#%contract-lambda (arg:ctc-id ...) c:ctc)
+  #:binding (scope (bind arg) ... c)
+
+  (#%ctc-app i:ctc-id args:ctc ...)
 
   (#%Immediate ((~datum check) pred:lsl-expr)
                ((~datum generate) gen:lsl-expr)

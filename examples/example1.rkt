@@ -2,6 +2,7 @@
 
 (define-contract (Divides n) (lambda (x) (zero? (modulo n x))))
 
+;; TODO: no longer works; no support for lsl-val parameterized contracts
 (: x (Divides (+ 5 5)))
 (define x 3)
 

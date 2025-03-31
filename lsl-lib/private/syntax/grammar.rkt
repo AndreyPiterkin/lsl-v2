@@ -26,8 +26,7 @@ GRAMMAR
                     (feature <lsl-expr> <lsl-expr>) ...)
        | (Function (arguments (<id> <ctc>) ...)
                    (result <ctc>))
-       | (<ctc-id> <lsl-expr> ...) ;; instantiation of parameterized contracts with lsl values
-       | (<ctc-id> <ctc-id> ...) ;; instantiation of parameterized contracts with contracts
+       | (<ctc-id> <ctc> ...) ;; parameterized contracts, i.e. (Tree X)
        | <ctc-id>
        | <lsl-expr>
 
@@ -65,7 +64,7 @@ GRAMMAR
 
 ;; Set of literals that belong in lsl-form position
 (define-literal-set lsl-literals
-  #:datum-literals (cond else if quote #%let #%let* #%letrec #%lambda #%lsl-app #%lsl-id #%rkt-id #%define : define-contract)
+  #:datum-literals (cond else if quote #%let #%let* #%letrec #%lambda #%lsl-app #%lsl-id #%rkt-id #%define : #%define-contract #%contract-lambda)
   ())
 
 ;; Set of literals that are found in contract position

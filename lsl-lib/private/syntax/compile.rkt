@@ -58,7 +58,7 @@
      (compile-define #'v #'b)]
     [(_ (: v ctc))
      (compile-attach-contract #'v #'ctc)]
-    [(_ (~and (define-contract _ _)
+    [(_ (~and (#%define-contract _ _)
               define-contract-stx))
      (compile-define-contract #'define-contract-stx)]))
 
@@ -133,8 +133,10 @@
      (compile-allof #'allof-stx)]
     [(_ (#%ctc-id i:id))
      #'(rt-validate-contract-id i #'i)]
+    [(_ (#%contract-lambda (arg:id ...) c:expr))
+     #'(lambda (arg ...) (compile-contract c))]
     [(_ (#%ctc-app i:id e:expr ...))
-     #'(i (make-contract-to-lsl-boundary (compile-lsl e)) ...)]))
+     #'(i (compile-contract e) ...)]))
 
 (begin-for-syntax
   ;; ImmediateCtcStx -> RuntimeCtcStx

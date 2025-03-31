@@ -28,6 +28,14 @@
     [(_ x:id e:expr)
      #'(#%define x e)]))
 
+(define-lsl-syntax define-contract
+  (syntax-parser
+    [(_ (x:id args:id ...)
+        e:expr)
+     #'(#%define-contract x (#%contract-lambda (args ...) e))]
+    [(_ x:id e:expr)
+     #'(#%define-contract x e)]))
+
 (define-lsl-syntax lambda
   (syntax-parser
     [(_ (args:id ...)
