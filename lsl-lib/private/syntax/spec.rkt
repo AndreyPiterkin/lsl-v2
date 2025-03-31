@@ -2,6 +2,7 @@
 
 (require syntax-spec-v3
          "compile.rkt"
+         "compile-util.rkt"
          (for-syntax syntax/parse
                      "compile.rkt"
                      "compile-util.rkt"

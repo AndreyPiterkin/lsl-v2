@@ -4,21 +4,12 @@
                      racket/list
                      racket/sequence
                      racket/syntax-srcloc
-                     
                      syntax/parse
-                     syntax/location
                      syntax/id-table
-
-                     
                      mischief/sort
                      "../util.rkt")
-         
          racket/stxparam
-         
-         syntax-spec-v3
-         syntax/location
-         
-         "../runtime/contract-common.rkt")
+         syntax-spec-v3)
 
 (provide (all-defined-out)
          (for-syntax (all-defined-out)))
@@ -102,19 +93,7 @@
                  [i (in-naturals)])
         (values id
                 (list (free-identifiers arg #:allow-host? #t) arg i))))
-    (make-immutable-free-id-table id-hash))
-
-  ;; SymbolSyntax ContractSyntax LslExprSyntax -> Syntax
-  ;; attaches the given contract to the identifier, renaming the value if it is a procedure
-  (define (attach-contract id ctc val)
-    #`(let* ([name #,id]
-             [body (rt-rename-if-proc name #,val)]
-             [pos (positive-blame name (quote-module-name))]
-             [neg (negative-blame name (quote-module-name))]
-             [ctc #,ctc])
-        (rt-attach-contract pos neg ctc body))))
-
-
+    (make-immutable-free-id-table id-hash)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; misc
