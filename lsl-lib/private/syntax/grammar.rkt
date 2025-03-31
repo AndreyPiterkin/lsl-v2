@@ -74,5 +74,6 @@ GRAMMAR
                     #%ctc-app
                     #%Immediate check generate shrink feature
                     #%Function arguments result raises
-                    #%OneOf)
+                    #%OneOf
+                    #%AllOf)
   ())

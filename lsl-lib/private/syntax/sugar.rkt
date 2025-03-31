@@ -91,8 +91,16 @@
      #'(#%Function (arguments [x a] ...)
                    (result r))]))
 
+;; TODO: I don't like that I have to do this... (this being tagging with unexpanded by using these
+;; sugar transformers
 (define-lsl-syntax OneOf
   (syntax-parser
     #:literal-sets (contract-literals)
     [(_ ~! c:expr ...)
      #'(#%OneOf c ...)]))
+
+(define-lsl-syntax AllOf
+  (syntax-parser
+    #:literal-sets (contract-literals)
+    [(_ ~! c:expr ...)
+     #'(#%AllOf c ...)]))

@@ -10,6 +10,7 @@
          "../runtime/immediate.rkt"
          "../runtime/function.rkt"
          "../runtime/oneof.rkt"
+         "../runtime/allof.rkt"
          "../util.rkt"
          "compile-util.rkt"
          syntax-spec-v3
@@ -128,6 +129,8 @@
      (compile-function #'function-stx)]
     [(_ (~and (#%OneOf e:expr ...) oneof-stx))
      (compile-oneof #'oneof-stx)]
+    [(_ (~and (#%AllOf e:expr ...) allof-stx))
+     (compile-allof #'allof-stx)]
     [(_ (#%ctc-id i:id))
      #'(rt-validate-contract-id i #'i)]
     [(_ (#%ctc-app i:id e:expr ...))
@@ -197,4 +200,16 @@
        (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
        #'(new oneof%
               [stx #'unexpanded]
-              [disjuncts (list compiled-ctc ...)])])))
+              [disjuncts (list compiled-ctc ...)])]))
+
+  ;; AllOfCtcStx -> RuntimeCtcStx
+  ;; Compiles the given allof contract
+  (define compile-allof
+    (syntax-parser
+      [(_ c ...)
+       (define/syntax-parse unexpanded
+         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
+       (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
+       #'(new allof%
+              [stx #'unexpanded]
+              [conjuncts (list compiled-ctc ...)])])))

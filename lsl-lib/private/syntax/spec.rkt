@@ -151,6 +151,7 @@
   #:binding (scope (bind v) ... e ... c)
 
   (#%OneOf c:ctc ...)
+  (#%AllOf c:ctc ...)
 
   (~> x:id
       #:when (lookup #'x (binding-class-predicate ctc-id))
