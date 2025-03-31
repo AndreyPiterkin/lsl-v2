@@ -118,42 +118,73 @@
     [(_ (~and (#%Immediate (check pred:expr)
                            (generate g:expr)
                            (shrink shr:expr)
-                           (feature feat-name:expr feat:expr) ...) stx^))
-     #`(let ([check (make-contract-to-lsl-boundary (compile-lsl pred))]
-             [gen (make-contract-to-lsl-boundary (compile-lsl g))]
-             [shrink (make-contract-to-lsl-boundary (compile-lsl shr))]
-             [features (list (list
-                              (make-contract-to-lsl-boundary (compile-lsl feat-name))
-                              (make-contract-to-lsl-boundary (compile-lsl feat)))
-                             ...)]
-             [stx #'#,(syntax-property #'stx^ 'unexpanded)])
-         (unless (procedure? check)
-           (raise-syntax-error #f "invalid immediate contract (must be a predicate)" #'pred))
-         (new immediate%
-              [stx stx]
-              [checker check]
-              [generator gen]
-              [shrinker shrink]
-              [features features]))]
+                           (feature feat-name:expr feat:expr) ...)
+              immediate-stx))
+     (compile-immediate #'immediate-stx)]
     [(_ (~and (#%Function (arguments (x:id c:expr) ...)
                           (result r:expr))
-              stx^))
-     (define arg-fv-table (clauses->fv-assoc (attribute x) (attribute c)))
-     (define/syntax-parse ((x^ c^ i) ...) (sort-domains! #'stx^ arg-fv-table))
-     
-     (define ids (attribute x^))
-     (define/syntax-parse ((x^^ ...) ...) (build-list (length ids) (lambda (i) (take ids i))))
-     
-     (define/syntax-parse (c^^ ...) #'((compile-contract c^) ...))
-     (define/syntax-parse r^ #'(compile-contract r))
-     #`(new function%
-            [stx #'#,(syntax-property #'stx^ 'unexpanded)]
-            [domain-order (list (#%datum . i) ...)]
-            [domains (list (lambda* (x^^ ...) c^^) ...)]
-            [codomain (lambda* (x^ ...) r^)])]
+              function-stx))
+     (compile-function #'function-stx)]
     [(_ (#%ctc-id i:id))
-     #'(if (procedure? i)
-           (raise-syntax-error #f "must instantiate parameterized contract" #'i)
-           i)]
+     #'(rt-validate-contract-id i #'i)]
     [(_ (#%ctc-app i:id e:expr ...))
      #'(i (make-contract-to-lsl-boundary (compile-lsl e)) ...)]))
+
+(begin-for-syntax
+  ;; Given a cons of syntax, extract the last one
+  (define (get-last-unexpanded lostx)
+    (if (cons? lostx)
+        (get-last-unexpanded (cdr lostx))
+        lostx))
+  
+  ;; ImmediateCtcStx -> RuntimeCtcStx
+  ;; Compiles the immediate contract into its runtime representation
+  (define compile-immediate
+    (syntax-parser
+      #:literal-sets (contract-literals)
+      [(_ (check pred)
+          (generate g)
+          (shrink shr)
+          (feature name feat) ...)
+       (define/syntax-parse unexpanded
+         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
+       
+       (define/syntax-parse check #'(make-contract-to-lsl-boundary (compile-lsl pred)))
+       (define/syntax-parse gen #'(make-contract-to-lsl-boundary (compile-lsl g)))
+       (define/syntax-parse shrink #'(make-contract-to-lsl-boundary (compile-lsl shr)))
+       (define/syntax-parse lo-features
+         #'(list (list (make-contract-to-lsl-boundary (compile-lsl name))
+                       (make-contract-to-lsl-boundary (compile-lsl feat)))
+                 ...))
+       
+       #'(let ([check^ check])
+           (rt-validate-flat-contract! check^ #'pred)
+           (new immediate%
+                [stx #'unexpanded]
+                [checker check^]
+                [generator gen]
+                [shrinker shrink]
+                [features lo-features]))]))
+
+  ;; FunctionCtcStx -> RuntimeCtcStx
+  ;; Compiles the given function contact syntax
+  (define compile-function
+    (syntax-parser
+      [(_ (arguments (x c) ...)
+          (result r))
+       (define/syntax-parse unexpanded
+         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
+
+       (define arg-fv-table (clauses->fv-assoc (attribute x) (attribute c)))
+       (define/syntax-parse ((x^ c^ i) ...) (sort-domains! #'stx^ arg-fv-table))
+     
+       (define ids (attribute x^))
+       (define/syntax-parse ((x^^ ...) ...) (build-list (length ids) (lambda (i) (take ids i))))
+     
+       (define/syntax-parse (c^^ ...) #'((compile-contract c^) ...))
+       (define/syntax-parse r^ #'(compile-contract r))
+       #`(new function%
+              [stx #'unexpanded]
+              [domain-order (list (#%datum . i) ...)]
+              [domains (list (lambda* (x^^ ...) c^^) ...)]
+              [codomain (lambda* (x^ ...) r^)])])))

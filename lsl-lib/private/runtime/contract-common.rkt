@@ -17,7 +17,9 @@
          unimplemented-error!
          contract-error
          rt-attach-contract
-         rt-rename-if-proc)
+         rt-rename-if-proc
+         rt-validate-flat-contract!
+         rt-validate-contract-id)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; parameters
@@ -125,3 +127,16 @@
   (if (procedure? val)
       (procedure-rename val name)
       val))
+
+;; Procudure ProcedureSyntax -> Void
+;; Ensures the given procedure is a predicate
+(define (rt-validate-flat-contract! proc proc-stx)
+  (unless (procedure? proc)
+    (raise-syntax-error #f "invalid immediate contract (must be a predicate)" proc-stx)))
+
+;; Contract Identifier -> Contract
+;; Returns the given contract if it is not a procedure, otherwise errors
+(define (rt-validate-contract-id ctc-id ctc-stx)
+  (if (procedure? ctc-id)
+      (raise-syntax-error #f "must instantiate parameterized contract" ctc-stx)
+      ctc-id))
