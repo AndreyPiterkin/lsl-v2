@@ -14,7 +14,6 @@
     (init-field stx domain-order domains codomain (exns #f))
     (define arity (length domains))
 
-
     (define/override (protect val pos)
       (define val-proc? (procedure? val))
       (define val-arity? (and val-proc? (procedure-arity-includes? val arity)))
@@ -28,7 +27,6 @@
                                  #:expected (args-error arity)
                                  #:given (args-error n-args)))
 
-
                (define args*
                  (for/fold ([guarded-args '()])
                            ([i domain-order]
@@ -36,14 +34,14 @@
                    (define arg (list-ref args i))
                    (define contract (apply domain guarded-args))
                    (define guard (send contract protect arg neg))
-
-                   ;; todo: without append
+                   ;; have to append because it has to be constructed in the un-reversed order
                    (append guarded-args (list (guard arg pos)))))
 
                (define result (apply val args*))
                (define guard (send (apply codomain args*) protect result pos))
                (guard result neg))
              (proc val contract-apply this (thunk val))))
+
           (failed-guard
            (lambda (val neg)
              (if val-proc?

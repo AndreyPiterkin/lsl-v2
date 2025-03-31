@@ -1,13 +1,7 @@
 #lang racket/base
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; require
-
 (require racket/match
          racket/generic)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; provide
 
 (provide (struct-out root)
          (struct-out proxy)
@@ -17,10 +11,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; data
-;; defines some "proxy" that has equality and hashing over it, with a custom
-;; write proc, and it can be called since it has a prop:proc to wrap its args
-;; in the wrapping function provided
-;; has a wrap, unwrap, and contract fields as well as the value to write
 
 (define-generics equatable
   (base-equal? equatable other))
@@ -45,18 +35,18 @@
        (case mode
          [(#t) write]
          [(#f) display]
-         [else (λ (p port) (print p port mode))]))
+         [else (lambda (p port) (print p port mode))]))
      (recur (unproxy self) port))])
 
 (struct proc proxy ()
   #:property prop:procedure
-  (λ (self . args)
+  (lambda (self . args)
     (match-define (proxy target wrapper _ _) self)
     (apply wrapper args)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; definitions
-
+;; Any -> Any
+;; Unwraps all nested proxies around the given value if it is a proxy, otherwise
+;; return the value given.
 (define (unproxy st)
   (if (proxy? st)
       (unproxy ((proxy-unwrap st)))
