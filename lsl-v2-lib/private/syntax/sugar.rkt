@@ -44,6 +44,7 @@
         e:expr)
      #'(#%lambda (args ...) e)]))
 
+;; TODO: Add support for associating local definitions with contracts. 
 (define-lsl-syntax local
   (syntax-parser
     #:datum-literals (define)
