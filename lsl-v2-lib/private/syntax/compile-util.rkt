@@ -21,16 +21,19 @@
   ;; An ArgClause is a (arg-clause Identifier [Listof Identifier] ContractSyntax Natural])
   ;; Stores the relevant information about an arm of a dependent function contract
   ;; the argument id, the free variables, the contract, and the position in the arg list.
-  (struct arg-clause (id deps ctc-stx pos))
+  (struct arg-clause (id deps ctc-stx pos) #:transparent)
 
   ;; [Listof Identifier] [Listof ContractSyntax] -> [Hash Symbol ArgClause]
   ;; Constructs a hashtable from symbol to ArgClause
   (define (compute-arg-clause-mapping ids args)
+    (define args-set (apply immutable-symbol-set ids))
     (for/hash ([id ids]
                [arg args]
                [i (in-naturals)])
+      (define free-vars-set (apply immutable-symbol-set (free-identifiers arg)))
+      (define free-args (symbol-set-intersect free-vars-set args-set))
       (values (syntax->datum id)
-              (arg-clause id (free-identifiers arg #:allow-host? #t) arg i))))
+              (arg-clause id (sequence->list (in-symbol-set free-args)) arg i))))
 
   ;; [Hash Symbol ArgClause] -> Symbol -> [Listof Symbol]
   ;; Get the "neighbors"--the depedencies of the computed arg clause--as symbols for top sort
@@ -38,7 +41,6 @@
     (define clause (hash-ref mapping key))
     (define deps (arg-clause-deps clause))
     (map syntax->datum deps))
-
 
   ;; [Hash Symbol ArgClause] -> Symbol -> [List Identifier ContractSyntax Natural]
   ;; Extracts all but the dependencies of the computed arg-clause as a list for unpacking

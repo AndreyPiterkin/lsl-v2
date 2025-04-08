@@ -7,4 +7,3 @@
 
 (: tree1 NatTree)
 (define tree1 (list 1 (list 2 3 4) 5))
-

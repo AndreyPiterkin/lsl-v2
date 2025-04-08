@@ -92,6 +92,14 @@
         (f 10))
    10
 
+   (run (define v 1)
+        (: times (Function
+                  (arguments (n integer?) (m (lambda (x) (= x v))))
+                  (result (lambda (r) (= r (* n m))))))
+        (define (times n m) (* n m))
+        (times 2 1))
+   2
+
    #:x (run (: f (-> integer? boolean?))
             (define (f x) x)
             (f 10))
@@ -129,4 +137,13 @@
           (* n m))
 
         (times 2 1))
-   "expected: (lambda (x) (>= x n))"))
+   "expected: (lambda (x) (>= x n))"
+
+   #:x
+   (run (define v 1)
+        (: times (Function
+                  (arguments (n integer?) (m (lambda (x) (= x v))))
+                  (result (lambda (r) (= r (* n m))))))
+        (define (times n m) (* n m))
+        (times 2 2))
+   "expected: (lambda (x) (= x v))"))
