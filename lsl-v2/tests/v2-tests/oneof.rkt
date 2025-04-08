@@ -52,7 +52,20 @@
   (chk
    (run (: x (OneOf integer? boolean?)) (define x 10) x)  10
    (run (: x (OneOf integer? boolean?)) (define x #t) x)  #t
-   (run (: x (OneOf integer? boolean?)) (define x #t) x)  #t
+   (run (define-contract Leaf false?)
+        (define-contract (Tree X) (OneOf (Tuple X (Tree X) (Tree X)) Leaf))
+        (define-contract NatTree (Tree natural?))
+
+        (: tree1 NatTree)
+        (define tree1 #f)
+
+        (: tree2 NatTree)
+        (define tree2 (list 1 #f #f))
+
+        (: tree3 NatTree)
+        (define tree3 (list 1 (list 2 #f #f) (list 3 #f #f)))
+        tree3) (list 1 (list 2 #f #f) (list 3 #f #f))
+
    #:x (run (: x (OneOf integer? boolean?)) (define x 1/2) x)
    "expected: (OneOf integer? boolean?)"
    #:x (run (define-contract or-nat-even (OneOf even? natural?))
@@ -65,4 +78,12 @@
             (define y -1)
             y) ;; TODO: Why is this `y` needed to make the test pass?
    "expected: even?"
+
+   #:x(run (define-contract Leaf false?)
+        (define-contract (Tree X) (OneOf (Tuple X (Tree X) (Tree X)) Leaf))
+        (define-contract NatTree (Tree natural?))
+
+        (: tree1 NatTree)
+        (define tree1 (list 1 (list 2 (list -1 #f #f) #f) (list 3 #f #f)))
+        tree1) "expected: (OneOf (Tuple X (Tree X) (Tree X)) Leaf)"
    ))
