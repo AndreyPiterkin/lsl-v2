@@ -17,21 +17,7 @@
 (module+ examples
   (provide (all-defined-out))
 
-  (define pos-ctc
-    (new immediate%
-         [stx (syntax/unexpanded positive?)]
-         [checker (lambda (x) (and (real? x) (positive? x)))]
-         [generator (lambda (fuel) (+ 1 (if (zero? fuel) 0 (random fuel))))]
-         [shrinker (lambda (fuel val) (floor (/ val 2)))]))
-
-  (define even-ctc
-      (new immediate%
-          [stx (syntax/unexpanded even?)]
-          [checker (lambda (x) (and (integer? x) (even? x)))]
-          [generator (lambda (fuel) (if (zero? fuel) 0 (* 2 (random fuel))))]
-          [shrinker (lambda (fuel val)
-                      (define val* (floor (/ val 2)))
-                      (if (odd? val*) (sub1 val*) val*))]))
+  (require (submod "immediate.rkt" examples))
 
   (define pte-ctc
     (new function%
