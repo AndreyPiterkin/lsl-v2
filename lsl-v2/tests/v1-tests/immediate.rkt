@@ -8,7 +8,7 @@
          lsl/private/contract/immediate
          lsl/private/guard
          lsl/private/util
-         "util.rkt")
+         "../util.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; examples

@@ -9,7 +9,7 @@
          racket/match
          lsl/private/contract/list
          lsl/private/guard
-         "util.rkt")
+         "../util.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; examples

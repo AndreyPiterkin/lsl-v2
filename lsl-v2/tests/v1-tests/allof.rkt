@@ -8,7 +8,7 @@
          racket/class
          lsl/private/contract/allof
          lsl/private/guard
-         "util.rkt")
+         "../util.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; examples

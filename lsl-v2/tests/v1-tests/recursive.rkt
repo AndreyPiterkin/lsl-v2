@@ -14,7 +14,7 @@
          lsl/private/contract/recursive
          lsl/private/guard
          lsl/private/proxy
-         "util.rkt")
+         "../util.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; examples

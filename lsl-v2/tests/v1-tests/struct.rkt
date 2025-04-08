@@ -8,7 +8,7 @@
          lsl/private/contract/struct
          lsl/private/guard
          lsl/private/proxy
-         "util.rkt")
+         "../util.rkt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; examples
