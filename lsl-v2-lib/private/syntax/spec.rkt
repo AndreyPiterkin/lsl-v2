@@ -38,6 +38,8 @@
   #:binding-space lsl
   #:allow-extension lsl-macro
 
+  (provide v:lsl-id ...)
+
   ;; Contracts are only allowed as top-level expressions
   (#%define-contract def:ctc-id c:ctc)
   #:binding (export def)

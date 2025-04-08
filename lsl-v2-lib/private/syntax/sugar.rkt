@@ -104,7 +104,8 @@
 (define-lsl-syntax ->
   (syntax-parser
     [(_ args ... res)
-     #'(#%Function (arguments [_ args] ...)
+    (define/syntax-parse (id ...) (map (lambda (_) (gensym)) (attribute args)))
+     #'(#%Function (arguments [id args] ...)
                    (result res))]))
 
 ;; TODO: I don't like that I have to do this... (this being tagging with unexpanded by using these

@@ -45,6 +45,8 @@
      #'e]
     [(_ (#%lambda (args ...) e))
      #'(lambda (args ...) (compile-lsl e))]
+    [(_ (provide args ...))
+     #'(provide args ...)]
     [(_ (#%lsl-app f args ...))
      #'(#%app (compile-lsl f)
               (compile-lsl args) ...)]
