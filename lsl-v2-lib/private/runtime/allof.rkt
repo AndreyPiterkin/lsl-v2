@@ -12,13 +12,9 @@
     (super-new)
     (init-field stx conjuncts)
 
-    ;; Any PositiveBlame -> [Listof Guard]
-    (define (apply-contracts val pos)
-      (map (lambda (c) (send c protect val pos)) conjuncts))
-
     ;; Any PositiveBlame -> Any
     (define/override (protect val pos)
-      (define guards (apply-contracts val pos))
+      (define guards (guards-of val pos))
       (define guard-ctor
         (if (andmap passed-guard? guards)
             passed-guard
@@ -28,4 +24,14 @@
        (lambda (val neg)
          (for/fold ([val val])
                    ([guard (in-list guards)])
-           (guard val neg)))))))
+           (guard val neg)))))
+
+    (define (guards-of val pos)
+      (let go ([conjuncts conjuncts])
+        (match conjuncts
+          [(list) null]
+          [(cons conjunct conjuncts-rest)
+           (define guard (send conjunct protect val pos))
+           (if (passed-guard? guard)
+               (cons guard (go conjuncts-rest))
+               (list guard))])))))
