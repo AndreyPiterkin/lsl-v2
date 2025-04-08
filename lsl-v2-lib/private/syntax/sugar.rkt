@@ -101,6 +101,12 @@
      #'(#%Function (arguments [x a] ...)
                    (result r))]))
 
+(define-lsl-syntax ->
+  (syntax-parser
+    [(_ args ... res)
+     #'(#%Function (arguments [_ args] ...)
+                   (result res))]))
+
 ;; TODO: I don't like that I have to do this... (this being tagging with unexpanded by using these
 ;; sugar transformers
 (define-lsl-syntax OneOf
