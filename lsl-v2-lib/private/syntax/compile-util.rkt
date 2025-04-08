@@ -15,9 +15,24 @@
          (for-syntax (all-defined-out)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; contract table
+(begin-for-syntax
+  (define contract-table (local-symbol-table))
+
+  (define (contract-table-set! id val)
+    (symbol-table-set! contract-table id val))
+
+  (define (contract-table-ref id)
+    (symbol-table-ref contract-table id #f)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; dependent function contract compilation
 
 (begin-for-syntax
+  (struct exn:fail:cyclic exn:fail (srclocs)
+    #:property prop:exn:srclocs
+    (lambda (self) (exn:fail:cyclic-srclocs self)))
+
   ;; An ArgClause is a (arg-clause Identifier [Listof Identifier] ContractSyntax Natural])
   ;; Stores the relevant information about an arm of a dependent function contract
   ;; the argument id, the free variables, the contract, and the position in the arg list.
@@ -107,7 +122,8 @@
                   (or (not (= (length (syntax->list def-stx))
                               (length (syntax->list #'app-stx))))
                       (andmap free-identifier=? (syntax->list def-stx) (syntax->list #'app-stx))))
-         (raise-syntax-error #f "recursive contract not instantiated with same arguments" #'app-stx))]
+         (raise-syntax-error #f "recursive contract not instantiated with same arguments"
+                             #'app-stx))]
       
       [(#%contract-lambda (arg:id ...) c:expr)
        (raise 'unreachable)]

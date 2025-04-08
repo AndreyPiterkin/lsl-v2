@@ -11,7 +11,6 @@
          "../runtime/allof.rkt"
          "../runtime/list.rkt"
          "../runtime/lazy.rkt"
-         "../util.rkt"
          "compile-util.rkt"
          "../runtime/runtime-util.rkt"
          syntax-spec-v3
@@ -38,7 +37,8 @@
     [(_ (#%define v b))
      #'(compile-define v b)]
     [(_ (: v ctc))
-     #'(compile-attach-contract v ctc)]
+     (do-attach-contract #'v #'ctc)
+     #'(begin)]
     [(_ (#%define-contract cid ctc))
      #'(compile-define-contract cid ctc)]
     [(_ e)
@@ -61,14 +61,12 @@
     [(_ sym ctc body)
      #'(rt:attach-contract sym body (quote-module-name) ctc)]))
 
-(define-syntax (compile-attach-contract stx)
-  (syntax-parse stx
-    [(_ v ctc)
-     (when (contract-table-ref #'v)
-       (raise-syntax-error (syntax->datum #'v) "value has previously attached contract" #'v))
+(begin-for-syntax
+  (define (do-attach-contract id ctc)
+    (when (contract-table-ref id)
+      (raise-syntax-error (syntax->datum id) "value has previously attached contract" id))
 
-     (contract-table-set! #'v #'ctc)
-     #'(begin)]))
+    (void (contract-table-set! id ctc))))
 
 (define-syntax (compile-define-contract stx)
   (syntax-parse stx
