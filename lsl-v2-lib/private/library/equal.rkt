@@ -1,22 +1,13 @@
 #lang racket/base
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; require
-
-(require (for-syntax racket/base)
-         racket/contract
+(require racket/contract
          "../proxy.rkt"
-         "../util.rkt")
+         "../util.rkt"
+         "../syntax/spec.rkt")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; provide
+(provide lsl:equal? lsl:eq?)
 
-(provide
- (contract-out
-  [equal? (-> any? any? any)]
-  [rename $eq? eq? (-> any? any? any)]))
-
-(define ($eq? x y)
+(define (internal-eq? x y)
   (eq? (unproxy-eq x) (unproxy-eq y)))
 
 ;; TODO: remove custom unproxy-eq call here
@@ -24,3 +15,7 @@
   (if (proxy? st)
       (unproxy-eq (proxy-target st))
       st))
+
+(define-contracted-lsl-library
+  (lsl:equal? (-> any? any? any?) equal?)
+  (lsl:eq? (-> any? any? any?) internal-eq?))

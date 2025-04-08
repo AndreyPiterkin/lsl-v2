@@ -1,22 +1,20 @@
 #lang racket/base
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; require
 
-(require (for-syntax racket/base)
+(require "../util.rkt"
          racket/bool
          racket/contract
-         "../util.rkt")
+         racket/provide
+         "../syntax/spec.rkt")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; provide
+(provide (all-defined-out))
 
-(provide
- (contract-out
-  [rename equal? boolean=? (-> boolean? boolean? boolean?)]
-  [boolean? (-> any? boolean?)]
-  [false? (-> any? boolean?)]
-  [not (-> boolean? boolean?)])
+(define-lsl-library
+  (lsl:true #t)
+  (lsl:false #f))
 
- false
- true)
+(define-contracted-lsl-library
+  (lsl:boolean=? (-> boolean? boolean? boolean?) equal?)
+  (lsl:boolean? (-> any? boolean?) boolean?)
+  (lsl:false? (-> any? boolean?) false?)
+  (lsl:not (-> boolean? boolean?) not))

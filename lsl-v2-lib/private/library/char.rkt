@@ -1,33 +1,30 @@
 #lang racket/base
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; require
-
 (require racket/base
          racket/contract
          racket/provide
-         "../util.rkt")
+         "../util.rkt"
+         "../syntax/spec.rkt")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; provide
+(provide (all-defined-out))
 
-(provide
- char->integer
- char-alphabetic?
- char-ci<=?
- char-ci<?
- char-ci=?
- char-ci>=?
- char-ci>?
- char-downcase
- char-lower-case?
- char-numeric?
- char-upcase
- char-upper-case?
- char-whitespace?
- char<=?
- char<?
- char=?
- char>=?
- char>?
- char?)
+(define-lsl-library
+  (lsl:char->integer char->integer)
+  (lsl:char-alphabetic? char-alphabetic?)
+  (lsl:char-ci<=? char-ci<=?)
+  (lsl:char-ci<? char-ci<?)
+  (lsl:char-ci=? char-ci=?)
+  (lsl:char-ci>=? char-ci>=?)
+  (lsl:char-ci>? char-ci>?)
+  (lsl:char-downcase char-downcase)
+  (lsl:char-lower-case? char-lower-case?)
+  (lsl:char-numeric? char-numeric?)
+  (lsl:char-upcase char-upcase)
+  (lsl:char-upper-case? char-upper-case?)
+  (lsl:char-whitespace? char-whitespace?)
+  (lsl:char<=? char<=?)
+  (lsl:char<? char<?)
+  (lsl:char=? char=?)
+  (lsl:char>=? char>=?)
+  (lsl:char>? char>?)
+  (lsl:char? char?))

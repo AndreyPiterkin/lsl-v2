@@ -1,31 +1,12 @@
 #lang racket/base
 
-(require syntax-spec-v3
-         "spec.rkt"
-         (for-syntax (except-in racket/base string)
+(require "spec.rkt"
+         (for-syntax racket/base
                      racket/list
                      syntax/parse
                      "grammar.rkt"))
 
 (provide (all-defined-out))
-
-(define-syntax define-lsl-form-syntax
-  (syntax-parser
-    [(_ name:id transformer:expr)
-     #'(define-dsl-syntax name lsl-form-macro
-         ;; TODO: expand to a runtime/compiletime ? function call
-         (lambda (stx)
-           (define stx^ (transformer stx))
-           (tag-syntax-with-unexpanded stx^ stx)))]))
-
-(define-syntax define-contract-syntax
-  (syntax-parser
-    [(_ name:id transformer:expr)
-     #'(define-dsl-syntax name contract-macro
-         ;; TODO: expand to a runtime/compiletime ? function call
-         (lambda (stx)
-           (define stx^ (transformer stx))
-           (tag-syntax-with-unexpanded stx^ stx)))]))
 
 ;; CORE FORM SUGAR
 

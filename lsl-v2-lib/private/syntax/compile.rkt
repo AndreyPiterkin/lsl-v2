@@ -41,11 +41,6 @@
     [(_ (if c t e)) #'(if (compile-lsl c)
                           (compile-lsl t)
                           (compile-lsl e))]
-    ;; this should go away
-    [(_ (#%rkt-id ((~datum #%host-expression) e:id)))
-     #'e]
-    [(_ (#%lsl-id e:id))
-     #'e]
     [(_ (#%lambda (args ...) e))
      #'(lambda (args ...) (compile-lsl e))]
     [(_ (provide args ...))

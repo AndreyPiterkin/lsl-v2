@@ -1,31 +1,28 @@
 #lang racket/base
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; require
 
-(require (for-syntax racket/base)
-         racket/contract
+(require racket/contract
          racket/list
          racket/function
-         "../util.rkt")
+         "../util.rkt"
+         "../syntax/spec.rkt")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; provide
+(provide (all-defined-out))
 
-(provide
- (contract-out
-  [andmap (-> (unconstrained-domain-> boolean?) list? list? ... any)]
-  [ormap (-> (unconstrained-domain-> boolean?) list? list? ... any)]
-  [procedure? (-> any? boolean?)])
+(define-contracted-lsl-library
+  (lsl:andmap (-> (unconstrained-domain-> boolean?) list? list? ... any) andmap)
+  (lsl:ormap (-> (unconstrained-domain-> boolean?) list? list? ... any) ormap)
+  (lsl:procedure? (-> any? boolean?) procedure?))
 
- apply
- argmax
- argmin
- compose
- filter
- foldl
- foldr
- identity
- map
- memf
- sort)
+(define-lsl-library
+  (lsl:apply apply)
+  (lsl:argmax argmax)
+  (lsl:argmin argmin)
+  (lsl:compose compose)
+  (lsl:filter filter)
+  (lsl:foldl foldl)
+  (lsl:foldr foldr)
+  (lsl:identity identity)
+  (lsl:map map)
+  (lsl:memf memf)
+  (lsl:sort sort))

@@ -3,55 +3,53 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; require
 
-(require (for-syntax racket/base)
-         racket/contract
+(require racket/contract
          racket/provide
          racket/math
-         "../util.rkt")
+         "../util.rkt"
+         "../syntax/spec.rkt")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; provide
+(provide (except-out (all-defined-out) natural?))
 
-(provide
- (contract-out
-  [natural? (-> any? boolean?)]
-  [integer? (-> any? boolean?)]
-  [number? (-> any? boolean?)]
-  [real? (-> any? boolean?)])
-
- random
- sqr
- sqrt
- *
- +
- -
- /
- <
- <=
- =
- >
- >=
- abs
- add1
- ceiling
- even?
- exact->inexact
- expt
- floor
- inexact->exact
- max
- min
- modulo
- negative?
- odd?
- pi
- positive?
- quotient
- remainder
- sgn
- sub1
- zero?)
+(define-lsl-library
+  (lsl:random random)
+  (lsl:sqr sqr)
+  (lsl:sqrt sqrt)
+  (lsl:* *)
+  (lsl:+ +)
+  (lsl:- -)
+  (lsl:/ /)
+  (lsl:< <)
+  (lsl:<= <=)
+  (lsl:= =)
+  (lsl:> >)
+  (lsl:>= >=)
+  (lsl:abs abs)
+  (lsl:add1 add1)
+  (lsl:ceiling ceiling)
+  (lsl:even? even?)
+  (lsl:exact->inexact exact->inexact)
+  (lsl:expt expt)
+  (lsl:floor floor)
+  (lsl:inexact->exact inexact->exact)
+  (lsl:max max)
+  (lsl:min min)
+  (lsl:modulo modulo)
+  (lsl:negative? negative?)
+  (lsl:odd? odd?)
+  (lsl:pi pi)
+  (lsl:positive? positive?)
+  (lsl:quotient quotient)
+  (lsl:remainder remainder)
+  (lsl:sgn sgn)
+  (lsl:sub1 sub1)
+  (lsl:zero? zero?))
 
 (define (natural? x)
   (and (integer? x) (>= x 0)))
 
+(define-contracted-lsl-library
+  (lsl:natural? (-> any? boolean?) natural?)
+  (lsl:integer? (-> any? boolean?) integer?)
+  (lsl:number? (-> any? boolean?) number?)
+  (lsl:real? (-> any? boolean?) real?))

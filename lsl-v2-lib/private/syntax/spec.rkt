@@ -15,7 +15,34 @@
   ;; Stx Stx -> Stx
   ;; Tags the new syntax with the old syntax under the property 'unexpanded
   (define (tag-syntax-with-unexpanded new-stx old-stx)
-    (syntax-property new-stx 'unexpanded old-stx)))
+    (syntax-property new-stx 'unexpanded old-stx))
+
+  (define-syntax-class extension-class
+    (pattern (~or* (~datum lsl-form-macro)
+                   (~datum contract-macro))))
+
+  (define (transform stx transformer)
+    (define stx^ (transformer stx))
+    (tag-syntax-with-unexpanded stx^ stx)))
+
+(define-syntax define-lsl-syntax
+  (syntax-parser
+    [(_ name:id extension:extension-class transformer:expr)
+     #'(define-dsl-syntax name extension
+         (lambda (stx)
+           (transform stx transformer)))]))
+
+(define-syntax define-lsl-form-syntax
+  (syntax-parser
+    [(_ name:id transformer:expr)
+     #'(define-lsl-syntax name lsl-form-macro transformer)]))
+
+(define-syntax define-contract-syntax
+  (syntax-parser
+    [(_ name:id transformer:expr)
+     #'(define-lsl-syntax name contract-macro transformer)]))
+
+
 
 (syntax-spec
  (binding-class lsl-id #:description "lsl binding")
@@ -26,14 +53,17 @@
  (nonterminal/exporting
   lsl-form
   #:description "lsl top-level form"
-  ;; todo: diff macro extensions
   #:allow-extension lsl-form-macro
   ;; shadowing identifiers like "provide"
   #:binding-space lsl
-
   (provide v:lsl-id ...)
+  e:lsl-def-or-expr
+  #:binding (re-export e))
 
-  ;; Contracts are only allowed as top-level expressions
+ (nonterminal/exporting
+  lsl-def-or-expr
+  #:allow-extension lsl-form-macro
+
   (#%define-contract def:ctc-id c:ctc)
   #:binding (export def)
 
@@ -97,7 +127,6 @@
   ctc
   #:description "contract"
   #:allow-extension contract-macro
-  ;; todo: get rid of this
   (#%ctc-id i:ctc-id)
 
   (#%contract-lambda (arg:ctc-id ...) c:ctc)
@@ -144,4 +173,4 @@
  (host-interface/definitions
   (define-contracted-lsl-library (v:lsl-id c:racket-expr e:racket-expr) ...+)
   #:binding ((export v) ...)
-  #'(begin (define v e) ...)))
+  #'(begin (define/contract v c e) ...)))

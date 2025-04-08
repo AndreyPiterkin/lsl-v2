@@ -1,18 +1,12 @@
 #lang racket/base
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; require
-
-(require (for-syntax racket/base)
-         racket/contract
+(require racket/contract
          racket/symbol
-         racket/bool)
+         racket/bool
+         "../syntax/spec.rkt")
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; provide
-
-(provide
- symbol=?
- symbol?
- symbol->string)
+(provide (all-defined-out))
+(define-lsl-library
+  (lsl:symbol=? symbol=?)
+  (lsl:symbol? symbol?)
+  (lsl:symbol->string symbol->string))
