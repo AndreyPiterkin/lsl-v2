@@ -18,6 +18,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; contract position helpers
 
+;; remove the syntax param, it is unnecessary 
+
 ;; Demarcates contract position, to be used in the contract binding ref compiler
 (define-syntax-parameter contract-pos
   (syntax-parser
@@ -114,9 +116,6 @@
      #'(lambda (x* ...) e)]))
 
 (begin-for-syntax
-  (define-syntax-class string
-    (pattern val #:when (string? (syntax-e #'val))))
-
   (define (check-same-arguments! def-id def-stx stx)
     (syntax-parse stx
       #:literal-sets (contract-literals)

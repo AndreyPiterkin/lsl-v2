@@ -25,6 +25,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; COMPILE-LSL
 
+;; todo: compiler should match nesting of forms
+
 ;; Compile the given LSL form
 (define-syntax (compile-lsl stx)
   (syntax-parse stx
@@ -39,6 +41,7 @@
     [(_ (if c t e)) #'(if (compile-lsl c)
                           (compile-lsl t)
                           (compile-lsl e))]
+    ;; this should go away
     [(_ (#%rkt-id ((~datum #%host-expression) e:id)))
      #'e]
     [(_ (#%lsl-id e:id))
@@ -63,6 +66,7 @@
      (compile-define #'v #'b)]
     [(_ (: v ctc))
      (compile-attach-contract #'v #'ctc)]
+    ;; this double pattern match is unnecessary, only one form now exists
     [(_ (~and (#%define-contract _ _)
               define-contract-stx))
      (compile-define-contract #'define-contract-stx)]))
@@ -87,8 +91,10 @@
   ;; SymbolSyntax ContractSyntax LslExprSyntax -> Syntax
   ;; attaches the given contract to the identifier, renaming the value if it is a procedure
   (define (attach-contract id ctc val)
+    ;; put most of this in a helper function to call instead
     #`(let* ([name #,id]
              [body (rt-rename-if-proc name #,val)]
+             ;; pull above
              [pos (positive-blame name (quote-module-name))]
              [neg (negative-blame name (quote-module-name))]
              [ctc #,ctc])
@@ -99,10 +105,11 @@
   (define (compile-attach-contract lsl-id ctc)
     (when (contract-table-ref lsl-id)
       (raise-syntax-error (syntax->datum lsl-id) "value has previously attached contract" lsl-id))
-    
+
+    ;; dont compile here, compile in define
     (define compiled-ctc #`(make-lsl-to-contract-boundary (compile-contract #,ctc)))
     (contract-table-set! lsl-id compiled-ctc)
-    #'(void))
+    #'(begin))
 
   ;; DefineContractStx -> RacketDefineStx
   ;; Compiles the given contract definition
@@ -157,6 +164,7 @@
        ;; have to do this themselves?
        (define/syntax-parse unexpanded
          (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
+     
 
        (define/syntax-parse check #'(make-contract-to-lsl-boundary (compile-lsl pred)))
        (define/syntax-parse gen #'(make-contract-to-lsl-boundary (compile-lsl g)))
@@ -166,8 +174,9 @@
                        (make-contract-to-lsl-boundary (compile-lsl feat)))
                  ...))
 
+       ;; inline some of this, pull out into runtime function
        #'(let ([check^ check])
-           (rt-validate-flat-contract! check^ #'pred)
+           (rt-validate-flat-contract! check^ #'pred) ;; todo: get unexpanded for pred
            (new immediate%
                 [stx #'unexpanded]
                 [checker check^]
@@ -187,6 +196,7 @@
        (define/syntax-parse ((x^ c^ i) ...) (order-clauses this-syntax arg-clauses))
 
        (define ids (attribute x^))
+       ;; maybe instead of lambdas, do let*?
        (define/syntax-parse ((x^^ ...) ...) (build-list (length ids) (lambda (i) (take ids i))))
 
        (define/syntax-parse (c^^ ...) #'((compile-contract c^) ...))
@@ -256,6 +266,7 @@
        (define/syntax-parse unexpanded
          (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
        (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
+       ;; explore why this works
        #'(new lazy%
               [stx #'unexpanded]
               [promise (delay (#%app i compiled-ctc ...))])])))

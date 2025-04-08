@@ -2,16 +2,12 @@
 
 (require syntax-spec-v3
          "compile.rkt"
-         "compile-util.rkt"
-         (for-syntax syntax/parse
-                     "compile.rkt"
-                     "compile-util.rkt"
-                     syntax/id-table
-                     (only-in syntax-spec-v3/private/ee-lib/main lookup in-space)
-                     (except-in racket/base
-                                string)))
+         racket/contract
+         (for-syntax racket/base
+                     syntax/parse
+                     (only-in syntax-spec-v3/private/ee-lib/main lookup in-space)))
 
-(provide #%lsl
+(provide (all-defined-out)
          (for-syntax (all-defined-out))
          (for-space lsl (all-defined-out)))
 
@@ -19,24 +15,21 @@
   ;; Stx Stx -> Stx
   ;; Tags the new syntax with the old syntax under the property 'unexpanded
   (define (tag-syntax-with-unexpanded new-stx old-stx)
-    (syntax-property new-stx 'unexpanded old-stx))
-
-  (define ctc-ref-compiler
-    (make-variable-like-reference-compiler
-     (lambda (ident)
-       (syntax-parse ident
-         [x:id (syntax/loc #'x (contract-pos x))])))))
+    (syntax-property new-stx 'unexpanded old-stx)))
 
 (syntax-spec
  (binding-class lsl-id #:description "lsl binding")
- (binding-class ctc-id #:description "contract binding" #:reference-compiler ctc-ref-compiler)
- (extension-class lsl-macro #:binding-space lsl)
+ (binding-class ctc-id #:description "contract binding")
+ (extension-class lsl-form-macro)
+ (extension-class contract-macro)
 
  (nonterminal/exporting
   lsl-form
-  #:description "lsl form"
+  #:description "lsl top-level form"
+  ;; todo: diff macro extensions
+  #:allow-extension lsl-form-macro
+  ;; shadowing identifiers like "provide"
   #:binding-space lsl
-  #:allow-extension lsl-macro
 
   (provide v:lsl-id ...)
 
@@ -46,15 +39,6 @@
 
   (: v:lsl-id c:ctc)
 
-  e:lsl-def-or-expr
-  #:binding (re-export e))
-
-
- (nonterminal/exporting
-  lsl-def-or-expr
-  #:description "lsl definition or expression"
-  #:binding-space lsl
-  #:allow-extension lsl-macro
   (#%define v:lsl-id e:lsl-expr)
   #:binding (export v)
 
@@ -63,14 +47,15 @@
  (nonterminal
   lsl-expr
   #:description "lsl expression"
+  #:allow-extension lsl-form-macro
+  ;; shadowing quote, etc
   #:binding-space lsl
-  #:allow-extension lsl-macro
 
   (quote t:literal)
-  (#%lsl-id i:lsl-id)
-  (#%rkt-id e:racket-expr)
+  i:lsl-id
+ 
 
-  ;; TODO: optional else clause
+  ;; TODO: optional else clause (macro)
   (cond [c:lsl-expr e:lsl-expr] ...
         [(~datum else) else:lsl-expr])
 
@@ -88,13 +73,10 @@
          b:lsl-expr)
   #:binding (scope (bind v) ... b)
 
-  (#%let* (b:binding ...)
-          body:lsl-expr)
-  #:binding (nest b ... body)
-
-  (#%letrec (b:rec-binding ...)
+  ;; todo: is this the correct semantics?
+  (#%letrec ([v:lsl-id e:lsl-expr] ...)
             body:lsl-expr)
-  #:binding (nest b ... body)
+  #:binding (scope (bind v) ... body)
 
   (#%lsl-app f:lsl-expr arg:lsl-expr ...)
 
@@ -102,17 +84,7 @@
       (tag-syntax-with-unexpanded #'(#%lsl-app f e ...) this-syntax))
 
   (~> (~or lit:number lit:string lit:boolean)
-      (tag-syntax-with-unexpanded #'(quote lit) this-syntax))
-
-  ;; TODO: how to get sensible errors if contracts are written in LSL position
-
-  ;; conversion of identifiers to special forms to differentiate between LSL and Racket vars
-  ;; see https://github.com/michaelballantyne/hosted-minikanren/blob/main/private/spec.rkt#L47
-  (~> x:id
-      #:when (lookup #'x (binding-class-predicate lsl-id))
-      (tag-syntax-with-unexpanded #'(#%lsl-id x) this-syntax))
-  (~> x:id
-      (tag-syntax-with-unexpanded #'(#%rkt-id x) this-syntax)))
+      (tag-syntax-with-unexpanded #'(quote lit) this-syntax)))
 
  (nonterminal literal
               #:description "literal value"
@@ -121,23 +93,11 @@
               b:boolean
               i:id)
 
- (nonterminal/nesting
-  binding (hole)
-  #:binding-space lsl
-  [v:lsl-id e:lsl-expr]
-  #:binding (scope (bind v) hole))
-
- (nonterminal/nesting
-  rec-binding (hole)
-  #:binding-space lsl
-  [v:lsl-id e:lsl-expr]
-  #:binding (scope (bind v) e hole))
-
  (nonterminal
   ctc
   #:description "contract"
-  #:binding-space lsl
-  #:allow-extension lsl-macro
+  #:allow-extension contract-macro
+  ;; todo: get rid of this
   (#%ctc-id i:ctc-id)
 
   (#%contract-lambda (arg:ctc-id ...) c:ctc)
@@ -167,11 +127,21 @@
       #:when (lookup #'i (binding-class-predicate ctc-id))
       (tag-syntax-with-unexpanded #'(#%ctc-app i e ...) this-syntax))
 
-  ;; TODO: if I expand to `Immediate`, it enters an infinite loop?
   (~> e:expr
-      (tag-syntax-with-unexpanded #'(#%Immediate (check e) (generate #f) (shrink #f)) this-syntax)))
+      (tag-syntax-with-unexpanded #'(#%Immediate (check e) (generate #f) (shrink #f)) this-syntax))) 
 
  (host-interface/definitions
   (#%lsl e:lsl-form ...)
   #:binding ((re-export e) ...)
-  #'(begin (compile-lsl e) ...)))
+  ;; TODO: expand to explicit module begin; for some reason I get a massive error
+  #'(begin (compile-lsl e) ...))
+
+ (host-interface/definitions
+  (define-lsl-library (v:lsl-id r:racket-expr)...+)
+  #:binding ((export v) ...)
+  #'(begin (define v r) ...))
+
+ (host-interface/definitions
+  (define-contracted-lsl-library (v:lsl-id c:racket-expr e:racket-expr) ...+)
+  #:binding ((export v) ...)
+  #'(begin (define v e) ...)))
