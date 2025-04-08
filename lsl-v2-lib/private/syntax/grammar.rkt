@@ -10,14 +10,13 @@
 
 GRAMMAR
 
-<lsl-form> := (define-contract <ctc-id> <ctc>)
+<lsl-form> := (define <lsl-id> <lsl-expr>)
+            | (define (<lsl-id> <lsl-id> ...) <lsl-expr>)
+            | (provide <lsl-id> ...)
+            | (define-contract <ctc-id> <ctc>)
             | (define-contract (<ctc-id> <id> ...) <ctc>)
             | (: <lsl-id> <ctc>)
-            | <lsl-def-or-expr>
-
-<lsl-def-or-expr> := (define <lsl-id> <lsl-expr>)
-                   | (define (<lsl-id> <lsl-id> ...) <lsl-expr>)
-                   | <lsl-expr>
+            | <lsl-expr>
 
 
 <ctc> := (Immediate (check <lsl-expr>)
