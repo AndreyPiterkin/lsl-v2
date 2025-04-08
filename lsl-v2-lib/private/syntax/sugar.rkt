@@ -3,12 +3,36 @@
 (require "spec.rkt"
          (for-syntax racket/base
                      racket/list
+                     racket/function
                      syntax/parse
                      "grammar.rkt"))
 
 (provide (all-defined-out))
 
 ;; CORE FORM SUGAR
+(begin-for-syntax
+  (define-syntax-class local-defines
+    #:description "local definition"
+    #:datum-literals (define define-contract :)
+    (pattern (~or (~and (~or (define v:id b:expr)
+                             (define (v:id args:id ...))
+                             (define-contract v:id c:expr)
+                             (define-contract (v:id args:id ...) c:expr))
+                        (~bind (bound-id #'v)))
+                  (: v:id c:expr)
+                  (~and inv:expr
+                        (~bind (invalid #'inv))))))
+
+  (define (check-invalid-local-definitions! invalids)
+    (for/list ([invalid invalids])
+      (when invalid
+        (raise-syntax-error 'local "expected local definition, found expression" invalid))))
+
+  (define (check-duplicate-bindings! bound-ids)
+    (define bound-ids^ (filter identity bound-ids))
+    (define maybe-duplicate (check-duplicates bound-ids^ bound-identifier=?))
+    (when maybe-duplicate
+      (raise-syntax-error 'local "definition occurs locally more than once" maybe-duplicate))))
 
 (define-lsl-form-syntax define
   (syntax-parser
@@ -32,14 +56,13 @@
         e:expr)
      #'(#%lambda (args ...) e)]))
 
-#;(define-lsl-form-syntax local
+(define-lsl-form-syntax local
   (syntax-parser
-    #:datum-literals (define define-contract :)
-    [(_ ((~and def-stx
-               (~or (define v:id b:expr)
-                    (define ))) ...)
+    [(_ (d:local-defines ...)
         e:expr)
-     #'(#%let ((v b) ...) e)]))
+     (check-invalid-local-definitions! (attribute d.invalid))
+     (check-duplicate-bindings! (attribute d.bound-id))
+     #'(#%local (d ...) e)]))
 
 (define-lsl-form-syntax let
   (syntax-parser
@@ -71,14 +94,14 @@
 (define-contract-syntax Immediate
   (syntax-parser
     #:literal-sets (contract-literals)
-    [(_  ((~datum check) pred:expr))
+    [(_ (check pred:expr))
      #'(#%Immediate (check pred)
                     (generate #f)
                     (shrink #f))]
-    [(_ (~alt (~optional ((~datum check) pred:expr) #:defaults ((pred #'(lambda (_) #t))))
-              (~optional ((~datum generate) gen:expr) #:defaults ((gen #'#f)))
-              (~optional ((~datum shrink) shrk:expr) #:defaults ((shrk #'#f)))
-              ((~datum feature) feat-name:expr feat:expr)) ...)
+    [(_ (~alt (~optional (check pred:expr) #:defaults ((pred #'(lambda (_) #t))))
+              (~optional (generate gen:expr) #:defaults ((gen #'#f)))
+              (~optional (shrink shrk:expr) #:defaults ((shrk #'#f)))
+              (feature feat-name:expr feat:expr)) ...)
      #'(#%Immediate (check pred)
                     (generate gen)
                     (shrink shrk)
@@ -88,8 +111,8 @@
   (syntax-parser
     #:literal-sets (contract-literals)
     ;; todo: get rid of unordering (result should always come after args)
-    [(_ (~alt (~once ((~datum arguments) [x:id a:expr] ...))
-              (~once ((~datum result) r:expr))) ...)
+    [(_ (arguments [x:id a:expr] ...)
+        (result r:expr))
      #'(#%Function (arguments [x a] ...)
                    (result r))]))
 
@@ -105,24 +128,24 @@
 (define-contract-syntax OneOf
   (syntax-parser
     #:literal-sets (contract-literals)
-    [(_ ~! c:expr ...)
+    [(_ c:expr ...)
      #'(#%OneOf c ...)]))
 
 (define-contract-syntax AllOf
   (syntax-parser
     #:literal-sets (contract-literals)
-    [(_ ~! c:expr ...)
+    [(_ c:expr ...)
      #'(#%AllOf c ...)]))
 
 (define-contract-syntax List
   (syntax-parser
     #:literal-sets (contract-literals)
-    [(_ ~! c:expr)
+    [(_ c:expr)
      #'(#%List c)]))
 
 (define-contract-syntax Tuple
   (syntax-parser
     #:literal-sets (contract-literals)
-    [(_ ~! c:expr ...)
+    [(_ c:expr ...)
      #'(#%Tuple c ...)]))
 

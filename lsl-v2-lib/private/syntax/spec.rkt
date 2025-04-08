@@ -103,6 +103,10 @@
          b:lsl-expr)
   #:binding (scope (bind v) ... b)
 
+  (#%local (d:lsl-def-or-expr ...)
+           b:lsl-expr)
+  #:binding (scope (import d) ... b)
+
   ;; todo: is this the correct semantics?
   (#%letrec ([v:lsl-id e:lsl-expr] ...)
             body:lsl-expr)
@@ -157,7 +161,8 @@
       (tag-syntax-with-unexpanded #'(#%ctc-app i e ...) this-syntax))
 
   (~> e:expr
-      (tag-syntax-with-unexpanded #'(#%Immediate (check e) (generate #f) (shrink #f)) this-syntax))) 
+      (tag-syntax-with-unexpanded #'(#%Immediate (check e) (generate #f) (shrink #f))
+                                  this-syntax)))
 
  (host-interface/definitions
   (#%lsl e:lsl-form ...)

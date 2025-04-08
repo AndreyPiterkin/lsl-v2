@@ -1,8 +1,7 @@
 #lang racket/base
 
 
-(require (for-syntax (except-in racket/base string)
-                     racket/class
+(require (for-syntax racket/base
                      racket/list
                      syntax/parse
                      "grammar.rkt")
@@ -15,13 +14,11 @@
          "../runtime/runtime-util.rkt"
          syntax-spec-v3
          racket/class
+         racket/local
          racket/promise
          syntax/location)
 
 (provide compile-lsl/lsl-form)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; COMPILE-LSL
 
 (define-syntax (compile-lsl/lsl-form stx)
   (syntax-parse stx
@@ -88,6 +85,9 @@
                           (compile-lsl/lsl-expr e))]
     [(_ (#%lambda (args ...) e))
      #'(lambda (args ...) (compile-lsl/lsl-expr e))]
+    [(_ (#%local (d ...) b))
+     #'(local ((compile-lsl/lsl-def-or-expr d) ...)
+         b)]
     [(_ (#%let ((b e) ...) body))
      #'(let ((b (compile-lsl/lsl-expr e)) ...)
          (compile-lsl/lsl-expr body))]
@@ -97,9 +97,6 @@
     [(_ (#%lsl-app f args ...))
      #'(#%app (compile-lsl/lsl-expr f)
               (compile-lsl/lsl-expr args) ...)]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; COMPILE-CONTRACT
 
 ;; Compile the given contract form
 (define-syntax (compile-contract stx)
@@ -208,6 +205,8 @@
 
 ;; Compiles the given contract instantiation to a lazy contract, to avoid
 ;; infinite recursion when instantiating the contract if it is recursive
+;; delays evaluation until the contract is checked, at which point
+;; recurs in parallel with the structure of the value, so can't recur infinitely
 (define-syntax compile-app
   (syntax-parser
     [(_ unexpanded i c ...)
