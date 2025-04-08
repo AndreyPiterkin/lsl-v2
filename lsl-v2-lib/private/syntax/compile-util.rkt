@@ -9,49 +9,10 @@
                      mischief/sort
                      "../util.rkt"
                      "grammar.rkt")
-         racket/stxparam
          syntax-spec-v3)
 
 (provide (all-defined-out)
          (for-syntax (all-defined-out)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; contract position helpers
-
-;; remove the syntax param, it is unnecessary 
-
-;; Demarcates contract position, to be used in the contract binding ref compiler
-(define-syntax-parameter contract-pos
-  (syntax-parser
-    [(_ x:expr)
-     (raise-syntax-error #f "illegal contract use in lsl expression" #'x)]))
-
-(begin-for-syntax
-  ;; Produces an invalid contract tansformer that raises a syntax error for invalid contract use
-  (define (make-invalid-contract-transformer)
-    (syntax-parser
-      [(_ x:expr)
-       (raise-syntax-error #f "illegal contract use in lsl expression" #'x)]))
-
-  ;; Produces a valid contract tansformer that expands to the value inside
-  (define (make-valid-contract-transformer)
-    (syntax-parser
-      [(_ ctc:expr)
-       #'ctc])))
-
-;; Creates a boundary where the nested expression cannot contain contracts
-(define-syntax make-contract-to-lsl-boundary
-  (syntax-parser
-    [(_ l)
-     #'(syntax-parameterize ([contract-pos (make-invalid-contract-transformer)])
-         l)]))
-
-;; Creates a boundary where the nested expression can contain contracts
-(define-syntax make-lsl-to-contract-boundary
-  (syntax-parser
-    [(_ c)
-     #'(syntax-parameterize ([contract-pos (make-valid-contract-transformer)])
-         c)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; dependent function contract compilation
@@ -158,4 +119,10 @@
   (define (get-last-unexpanded lostx)
     (if (cons? lostx)
         (get-last-unexpanded (cdr lostx))
-        lostx)))
+        lostx))
+
+  (define (get-unexpanded stx)
+    (define maybe-unexpanded (get-last-unexpanded (syntax-property stx 'unexpanded)))
+    (if maybe-unexpanded
+        maybe-unexpanded
+        stx)))

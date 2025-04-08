@@ -32,23 +32,14 @@
         e:expr)
      #'(#%lambda (args ...) e)]))
 
-;; TODO: Add support for associating local definitions with contracts. 
-;; should be a form and not a macro
-(define-lsl-form-syntax local
+#;(define-lsl-form-syntax local
   (syntax-parser
-    #:datum-literals (define)
-    [(_ ((define v:id b:expr) ...)
+    #:datum-literals (define define-contract :)
+    [(_ ((~and def-stx
+               (~or (define v:id b:expr)
+                    (define ))) ...)
         e:expr)
-     (define duplicate (check-duplicates (attribute v) bound-identifier=?))
-     (when duplicate
-       (raise-syntax-error #f "duplicate binding in local" duplicate))
-     #'(let* ([v b] ...) e)]
-    [(_ ((define (v:id args:id ...) b:expr) ...)
-        e:expr)
-     (define duplicate (check-duplicates (attribute v) bound-identifier=?))
-     (when duplicate
-       (raise-syntax-error #f "duplicate binding" duplicate))
-     #'(let* ([v (#%lambda (args ...) b)] ...) e)]))
+     #'(#%let ((v b) ...) e)]))
 
 (define-lsl-form-syntax let
   (syntax-parser

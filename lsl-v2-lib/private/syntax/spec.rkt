@@ -57,6 +57,7 @@
   ;; shadowing identifiers like "provide"
   #:binding-space lsl
   (provide v:lsl-id ...)
+  
   e:lsl-def-or-expr
   #:binding (re-export e))
 
@@ -71,7 +72,6 @@
 
   (#%define v:lsl-id e:lsl-expr)
   #:binding (export v)
-
   e:lsl-expr)
 
  (nonterminal
@@ -163,7 +163,7 @@
   (#%lsl e:lsl-form ...)
   #:binding ((re-export e) ...)
   ;; TODO: expand to explicit module begin; for some reason I get a massive error
-  #'(begin (compile-lsl e) ...))
+  #'(begin (compile-lsl/lsl-form e) ...))
 
  (host-interface/definitions
   (define-lsl-library (v:lsl-id r:racket-expr)...+)

@@ -6,8 +6,6 @@
                      racket/list
                      syntax/parse
                      "grammar.rkt")
-         "../runtime/contract-common.rkt"
-         "../runtime/immediate.rkt"
          "../runtime/function.rkt"
          "../runtime/oneof.rkt"
          "../runtime/allof.rkt"
@@ -15,20 +13,69 @@
          "../runtime/lazy.rkt"
          "../util.rkt"
          "compile-util.rkt"
+         "../runtime/runtime-util.rkt"
          syntax-spec-v3
          racket/class
          racket/promise
          syntax/location)
 
-(provide compile-lsl)
+(provide compile-lsl/lsl-form)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; COMPILE-LSL
 
-;; todo: compiler should match nesting of forms
+(define-syntax (compile-lsl/lsl-form stx)
+  (syntax-parse stx
+    #:literal-sets (lsl-literals)
+    [(_ (provide args ...))
+     #'(provide args ...)]
+    [(_ e)
+     #'(compile-lsl/lsl-def-or-expr e)]))
 
-;; Compile the given LSL form
-(define-syntax (compile-lsl stx)
+(define-syntax (compile-lsl/lsl-def-or-expr stx)
+  (syntax-parse stx
+    #:literal-sets (lsl-literals)
+    [(_ (#%define v b))
+     #'(compile-define v b)]
+    [(_ (: v ctc))
+     #'(compile-attach-contract v ctc)]
+    [(_ (#%define-contract cid ctc))
+     #'(compile-define-contract cid ctc)]
+    [(_ e)
+     #'(compile-lsl/lsl-expr e)]))
+
+(define-syntax (compile-define stx)
+  (syntax-parse stx
+    [(_ v b)
+     (define body #'(compile-lsl/lsl-expr b))
+     (define maybe-ctc (contract-table-ref #'v))
+     (define/syntax-parse body^
+       (if maybe-ctc
+           #`(attach-contract 'v (compile-contract #,maybe-ctc) #,body)
+           body))
+     #'(define v
+         body^)]))
+
+(define-syntax (attach-contract stx)
+  (syntax-parse stx
+    [(_ sym ctc body)
+     #'(rt:attach-contract sym body (quote-module-name) ctc)]))
+
+(define-syntax (compile-attach-contract stx)
+  (syntax-parse stx
+    [(_ v ctc)
+     (when (contract-table-ref #'v)
+       (raise-syntax-error (syntax->datum #'v) "value has previously attached contract" #'v))
+
+     (contract-table-set! #'v #'ctc)
+     #'(begin)]))
+
+(define-syntax (compile-define-contract stx)
+  (syntax-parse stx
+    [(_ cid ctc)
+     #'(define cid (compile-contract ctc))]))
+
+(define-syntax (compile-lsl/lsl-expr stx)
   (syntax-parse stx
     #:literal-sets (lsl-literals)
     [(_ (quote t))
@@ -36,232 +83,137 @@
     [(_ i:id)
      #'i]
     [(_ (cond [c e] ... [else el]))
-     #'(cond [(compile-lsl c) (compile-lsl e)] ...
-             [else (compile-lsl el)])]
-    [(_ (if c t e)) #'(if (compile-lsl c)
-                          (compile-lsl t)
-                          (compile-lsl e))]
+     #'(cond [(compile-lsl/lsl-expr c) (compile-lsl/lsl-expr e)] ...
+             [else (compile-lsl/lsl-expr el)])]
+    [(_ (if c t e)) #'(if (compile-lsl/lsl-expr c)
+                          (compile-lsl/lsl-expr t)
+                          (compile-lsl/lsl-expr e))]
     [(_ (#%lambda (args ...) e))
-     #'(lambda (args ...) (compile-lsl e))]
-    [(_ (provide args ...))
-     #'(provide args ...)]
-    [(_ (#%lsl-app f args ...))
-     #'(#%app (compile-lsl f)
-              (compile-lsl args) ...)]
+     #'(lambda (args ...) (compile-lsl/lsl-expr e))]
     [(_ (#%let ((b e) ...) body))
-     #'(let ((b (compile-lsl e)) ...)
-         (compile-lsl body))]
-    [(_ (#%let* ((b e) ...) body))
-     #'(let* ((b (compile-lsl e)) ...)
-         (compile-lsl body))]
+     #'(let ((b (compile-lsl/lsl-expr e)) ...)
+         (compile-lsl/lsl-expr body))]
     [(_ (#%letrec ((b e) ...) body))
-     #'(letrec ((b (compile-lsl e)) ...)
-         (compile-lsl body))]
-    [(_ (#%define v b))
-     (compile-define #'v #'b)]
-    [(_ (: v ctc))
-     (compile-attach-contract #'v #'ctc)]
-    ;; this double pattern match is unnecessary, only one form now exists
-    [(_ (~and (#%define-contract _ _)
-              define-contract-stx))
-     (compile-define-contract #'define-contract-stx)]))
-
-(begin-for-syntax
-  ;; LslIdentifier LslExprStx -> RacketDefineStx
-  ;; Compiles the `define` form
-  (define (compile-define id body)
-    (define body^ #`(compile-lsl #,body))
-    (define maybe-ctc (contract-table-ref id))
-    (define id-as-symbol #`'#,id)
-    
-    (define body^^
-      (if maybe-ctc
-          (attach-contract id-as-symbol
-                           maybe-ctc
-                           body^)
-          body^))
-
-    #`(define #,id #,body^^))
-
-  ;; SymbolSyntax ContractSyntax LslExprSyntax -> Syntax
-  ;; attaches the given contract to the identifier, renaming the value if it is a procedure
-  (define (attach-contract id ctc val)
-    ;; put most of this in a helper function to call instead
-    #`(let* ([name #,id]
-             [body (rt-rename-if-proc name #,val)]
-             ;; pull above
-             [pos (positive-blame name (quote-module-name))]
-             [neg (negative-blame name (quote-module-name))]
-             [ctc #,ctc])
-        (rt-attach-contract pos neg ctc body)))
-
-  ;; LslIdentifier ContractStx -> VoidSyntax
-  ;; Compiles the contract attach
-  (define (compile-attach-contract lsl-id ctc)
-    (when (contract-table-ref lsl-id)
-      (raise-syntax-error (syntax->datum lsl-id) "value has previously attached contract" lsl-id))
-
-    ;; dont compile here, compile in define
-    (define compiled-ctc #`(make-lsl-to-contract-boundary (compile-contract #,ctc)))
-    (contract-table-set! lsl-id compiled-ctc)
-    #'(begin))
-
-  ;; DefineContractStx -> RacketDefineStx
-  ;; Compiles the given contract definition
-  (define (compile-define-contract def-ctc-stx)
-    (syntax-parse def-ctc-stx
-      [(_ name contract)
-       #'(define name (make-lsl-to-contract-boundary (compile-contract contract)))])))
+     #'(letrec ((b (compile-lsl/lsl-expr e)) ...)
+         (compile-lsl/lsl-expr body))]
+    [(_ (#%lsl-app f args ...))
+     #'(#%app (compile-lsl/lsl-expr f)
+              (compile-lsl/lsl-expr args) ...)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; COMPILE-CONTRACT
 
 ;; Compile the given contract form
 (define-syntax (compile-contract stx)
+  (define/syntax-parse unexpanded
+    (syntax-parse stx
+      [(_ ctc)
+       (get-unexpanded #'ctc)]))
   (syntax-parse stx
     #:literal-sets (contract-literals)
-    [(_ (~and (#%Immediate (check pred:expr)
-                           (generate g:expr)
-                           (shrink shr:expr)
-                           (feature feat-name:expr feat:expr) ...)
-              immediate-stx))
-     (compile-immediate #'immediate-stx)]
-    [(_ (~and (#%Function (arguments (x:id c:expr) ...)
-                          (result r:expr))
-              function-stx))
-     (compile-function #'function-stx)]
-    [(_ (~and (#%OneOf e:expr ...) oneof-stx))
-     (compile-oneof #'oneof-stx)]
-    [(_ (~and (#%AllOf e:expr ...) allof-stx))
-     (compile-allof #'allof-stx)]
-    [(_ (~and (#%List e:expr) list-stx))
-     (compile-list #'list-stx)]
-    [(_ (~and (#%Tuple e:expr ...) tuple-stx))
-     (compile-tuple #'tuple-stx)]
+    [(_ (#%Immediate (check pred:expr)
+                     (generate g:expr)
+                     (shrink shr:expr)
+                     (feature feat-name:expr feat:expr) ...))
+     #'(compile-immediate unexpanded pred g shr (feat-name feat) ...)]
+    [(_ (#%Function (arguments (x:id c:expr) ...)
+                    (result r:expr)))
+     #'(compile-function unexpanded (x c) ... r)]
+    [(_ (#%OneOf e:expr ...))
+     #'(compile-oneof unexpanded e ...)]
+    [(_ (#%AllOf e:expr ...))
+     #'(compile-allof unexpanded e ...)]
+    [(_ (#%List e:expr))
+     #'(compile-list unexpanded e)]
+    [(_ (#%Tuple e:expr ...))
+     #'(compile-tuple unexpanded e ...)]
     [(_ (#%ctc-id i:id))
-     #'(rt-validate-contract-id i #'i)]
+     #'(rt:validate-contract-id i #'i)]
     [(_ (#%contract-lambda (arg:id ...) c:expr))
      #'(lambda (arg ...) (compile-contract c))]
-    [(_ (~and (#%ctc-app i:id e:expr ...) app-stx))
-     (compile-app #'app-stx)]))
+    [(_ (#%ctc-app i:id e:expr ...))
+     #'(compile-app unexpanded i e ...)]))
 
-(begin-for-syntax
-  ;; ImmediateCtcStx -> RuntimeCtcStx
-  ;; Compiles the immediate contract into its runtime representation
-  (define compile-immediate
-    (syntax-parser
-      #:literal-sets (contract-literals)
-      [(_ (check pred)
-          (generate g)
-          (shrink shr)
-          (feature name feat) ...)
-       ;; TODO: somehow introduce unexpanded into scope so all compile-xyzcontract functions dont
-       ;; have to do this themselves?
-       (define/syntax-parse unexpanded
-         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
-     
+(define-syntax compile-immediate
+  (syntax-parser
+    #:literal-sets (contract-literals)
+    [(_ unexpanded
+        pred
+        g
+        shr
+        (name feat) ...)
+     (define/syntax-parse pred-unexpanded (get-unexpanded #'pred))
+     (define/syntax-parse check #'(compile-lsl/lsl-expr pred))
+     (define/syntax-parse gen #'(compile-lsl/lsl-expr g))
+     (define/syntax-parse shrink #'(compile-lsl/lsl-expr shr))
+     (define/syntax-parse lo-features
+       #'(list (list (compile-lsl/lsl-expr name)
+                     (compile-lsl/lsl-expr feat))
+               ...))
 
-       (define/syntax-parse check #'(make-contract-to-lsl-boundary (compile-lsl pred)))
-       (define/syntax-parse gen #'(make-contract-to-lsl-boundary (compile-lsl g)))
-       (define/syntax-parse shrink #'(make-contract-to-lsl-boundary (compile-lsl shr)))
-       (define/syntax-parse lo-features
-         #'(list (list (make-contract-to-lsl-boundary (compile-lsl name))
-                       (make-contract-to-lsl-boundary (compile-lsl feat)))
-                 ...))
+     #'(rt:make-immediate #'unexpanded #'pred-unexpanded check gen shrink lo-features)]))
 
-       ;; inline some of this, pull out into runtime function
-       #'(let ([check^ check])
-           (rt-validate-flat-contract! check^ #'pred) ;; todo: get unexpanded for pred
-           (new immediate%
-                [stx #'unexpanded]
-                [checker check^]
-                [generator gen]
-                [shrinker shrink]
-                [features lo-features]))]))
+(define-syntax compile-function
+  (syntax-parser
+    [(_ unexpanded (x c) ... r)
+     (define arg-clauses (compute-arg-clause-mapping (attribute x) (attribute c)))
+     (define/syntax-parse ((x^ c^ i) ...) (order-clauses this-syntax arg-clauses))
 
-  ;; FunctionCtcStx -> RuntimeCtcStx
-  ;; Compiles the given function contact syntax
-  (define compile-function
-    (syntax-parser
-      [(_ (arguments (x c) ...)
-          (result r))
-       (define/syntax-parse unexpanded
-         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
-       (define arg-clauses (compute-arg-clause-mapping (attribute x) (attribute c)))
-       (define/syntax-parse ((x^ c^ i) ...) (order-clauses this-syntax arg-clauses))
+     (define ids (attribute x^))
+     ;; maybe instead of lambdas, do let*?
+     (define/syntax-parse ((x^^ ...) ...) (build-list (length ids) (lambda (i) (take ids i))))
 
-       (define ids (attribute x^))
-       ;; maybe instead of lambdas, do let*?
-       (define/syntax-parse ((x^^ ...) ...) (build-list (length ids) (lambda (i) (take ids i))))
+     (define/syntax-parse (c^^ ...) #'((compile-contract c^) ...))
+     (define/syntax-parse r^ #'(compile-contract r))
+     #'(new function%
+            [stx #'unexpanded]
+            [domain-order (list (#%datum . i) ...)]
+            [domains (list (lambda* (x^^ ...) c^^) ...)]
+            [codomain (lambda* (x^ ...) r^)])]))
 
-       (define/syntax-parse (c^^ ...) #'((compile-contract c^) ...))
-       (define/syntax-parse r^ #'(compile-contract r))
-       #`(new function%
-              [stx #'unexpanded]
-              [domain-order (list (#%datum . i) ...)]
-              [domains (list (lambda* (x^^ ...) c^^) ...)]
-              [codomain (lambda* (x^ ...) r^)])]))
+(define-syntax compile-oneof
+  (syntax-parser
+    [(_ unexpanded c ...)
+     (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
+     #'(new oneof%
+            [stx #'unexpanded]
+            [disjuncts (list compiled-ctc ...)])]))
 
-  ;; OneOfCtcStx -> RuntimeCtcStx
-  ;; Compiles the given oneof contract
-  (define compile-oneof
-    (syntax-parser
-      [(_ c ...)
-       (define/syntax-parse unexpanded
-         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
-       (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
-       #'(new oneof%
-              [stx #'unexpanded]
-              [disjuncts (list compiled-ctc ...)])]))
+;; Compiles the given allof contract
+(define-syntax compile-allof
+  (syntax-parser
+    [(_ unexpanded c ...)
+     (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
+     #'(new allof%
+            [stx #'unexpanded]
+            [conjuncts (list compiled-ctc ...)])]))
 
-  ;; AllOfCtcStx -> RuntimeCtcStx
-  ;; Compiles the given allof contract
-  (define compile-allof
-    (syntax-parser
-      [(_ c ...)
-       (define/syntax-parse unexpanded
-         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
-       (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
-       #'(new allof%
-              [stx #'unexpanded]
-              [conjuncts (list compiled-ctc ...)])]))
+;; Compiles the given list contract
+(define-syntax compile-list
+  (syntax-parser
+    [(_ unexpanded c)
+     (define/syntax-parse compiled-ctc #'(compile-contract c))
+     #'(new list%
+            [stx #'unexpanded]
+            [fixed? #f]
+            [contracts (list compiled-ctc)])]))
 
-  ;; ListCtcStx -> RuntimeCtcStx
-  ;; Compiles the given list contract
-  (define compile-list
-    (syntax-parser
-      [(_ c)
-       (define/syntax-parse unexpanded
-         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
-       (define/syntax-parse compiled-ctc #'(compile-contract c))
-       #'(new list%
-              [stx #'unexpanded]
-              [fixed? #f]
-              [contracts (list compiled-ctc)])]))
+;; Compiles the given tuple contract
+(define-syntax compile-tuple
+  (syntax-parser
+    [(_ unexpanded c ...)
+     (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
+     #'(new list%
+            [stx #'unexpanded]
+            [fixed? #t]
+            [contracts (list compiled-ctc ...)])]))
 
-  ;; TupleCtcStx -> RuntimeCtcStx
-  ;; Compiles the given tuple contract
-  (define compile-tuple
-    (syntax-parser
-      [(_ c ...)
-       (define/syntax-parse unexpanded
-         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
-       (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
-       #'(new list%
-              [stx #'unexpanded]
-              [fixed? #t]
-              [contracts (list compiled-ctc ...)])]))
-
-  ;; AppCtcStx -> RuntimeCtcSyntax
-  ;; Compiles the given contract instantiation to a lazy contract, to avoid
-  ;; infinite recursion when instantiating the contract if it is recursive
-  (define compile-app
-    (syntax-parser
-      [(_ i c ...)
-       (define/syntax-parse unexpanded
-         (get-last-unexpanded (syntax-property this-syntax 'unexpanded)))
-       (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
-       ;; explore why this works
-       #'(new lazy%
-              [stx #'unexpanded]
-              [promise (delay (#%app i compiled-ctc ...))])])))
+;; Compiles the given contract instantiation to a lazy contract, to avoid
+;; infinite recursion when instantiating the contract if it is recursive
+(define-syntax compile-app
+  (syntax-parser
+    [(_ unexpanded i c ...)
+     (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
+     #'(new lazy%
+            [stx #'unexpanded]
+            [promise (delay (#%app i compiled-ctc ...))])]))

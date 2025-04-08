@@ -15,11 +15,7 @@
          blame->polarity
          (struct-out exn:fail:lsl:contract)
          unimplemented-error!
-         contract-error
-         rt-attach-contract
-         rt-rename-if-proc
-         rt-validate-flat-contract!
-         rt-validate-contract-id)
+         contract-error)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; parameters
@@ -112,34 +108,3 @@
 
 (define (blame->polarity blm)
   (if (positive-blame? blm) "server" "client"))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; miscellaneus runtime code
-
-;; PositiveBlame NegativeBlame Contract Any -> Any
-;; Attaches the contract to the given value with the corresponding blame targets, returning the
-;; value itself if it passes contract check.
-(define (rt-attach-contract pos neg ctc val)
-  ((send ctc protect val pos)
-   val
-   neg))
-
-;; Symbol Any -> Any
-;; If the given _val_ is a procedure, renames it to the given name, otherwise leaves it untouched.
-(define (rt-rename-if-proc name val)
-  (if (procedure? val)
-      (procedure-rename val name)
-      val))
-
-;; Procudure ProcedureSyntax -> Void
-;; Ensures the given procedure is a predicate
-(define (rt-validate-flat-contract! proc proc-stx)
-  (unless (procedure? proc)
-    (raise-syntax-error #f "invalid immediate contract (must be a predicate)" proc-stx)))
-
-;; Contract Identifier -> Contract
-;; Returns the given contract if it is not a procedure, otherwise errors
-(define (rt-validate-contract-id ctc-id ctc-stx)
-  (if (procedure? ctc-id)
-      (raise-syntax-error #f "must instantiate parameterized contract" ctc-stx)
-      ctc-id))
