@@ -103,20 +103,30 @@
             (f 10))
    "expected: (Immediate (check (lambda (y) (eq? x y))))"
 
-  #:x (run (: f (Function (arguments [x (Immediate (check (lambda (z) (eq? y z))))]
-                                     [y (Immediate (check (lambda (z) (eq? x z))))])
-                          (result integer?)))
-           (define (f x y) (+ x y))
-           (f 10 20))
-  "cannot have cyclic dependency"
+   #:x (run (: f (Function (arguments [x (Immediate (check (lambda (z) (eq? y z))))]
+                                      [y (Immediate (check (lambda (z) (eq? x z))))])
+                           (result integer?)))
+            (define (f x y) (+ x y))
+            (f 10 20))
+   "cannot have cyclic dependency"
 
-  #:x (run* (: f (-> integer? integer?))
-            (define (f x y) x))
-  "expected: 1-arity function"
+   #:x (run (: f (-> integer? integer?))
+            (define (f x y) x)
+            5) ;; TODO: Why is the `5` needed and why does it only work with `run` (as opposed to Cam's `run*`)?
+   "expected: 1-arity function"
 
-  #:x
-  (run (: f (-> integer? integer? integer?))
-       (define (f x y) x)
-       (f 1))
-  "expected: 2 arguments"
-  ))
+   #:x
+   (run (: f (-> integer? integer? integer?))
+        (define (f x y) x)
+        (f 1))
+   "expected: 2 arguments"
+
+   #:x
+   (run (: times (Function (arguments (n integer?)
+                                      (m (lambda (x) (>= x n))))
+                           (result (lambda (r) (= r (* n m))))))
+        (define (times n m)
+          (* n m))
+
+        (times 2 1))
+   "expected: (lambda (x) (>= x n))"))

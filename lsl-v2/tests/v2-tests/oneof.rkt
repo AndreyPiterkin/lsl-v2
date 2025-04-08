@@ -52,6 +52,17 @@
   (chk
    (run (: x (OneOf integer? boolean?)) (define x 10) x)  10
    (run (: x (OneOf integer? boolean?)) (define x #t) x)  #t
+   (run (: x (OneOf integer? boolean?)) (define x #t) x)  #t
    #:x (run (: x (OneOf integer? boolean?)) (define x 1/2) x)
    "expected: (OneOf integer? boolean?)"
+   #:x (run (define-contract or-nat-even (OneOf even? natural?))
+            (define-contract and-nat-even (AllOf even? natural?))
+
+            (: x or-nat-even)
+            (define x -2)
+
+            (: y and-nat-even)
+            (define y -1)
+            y) ;; TODO: Why is this `y` needed to make the test pass?
+   "expected: even?"
    ))
