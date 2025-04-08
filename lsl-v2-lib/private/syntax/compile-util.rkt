@@ -7,7 +7,6 @@
                      racket/function
                      syntax/parse
                      mischief/sort
-                     "../util.rkt"
                      "grammar.rkt")
          syntax-spec-v3)
 
