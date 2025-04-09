@@ -6,6 +6,7 @@
                      racket/function
                      syntax/parse
                      syntax/struct
+                     racket/sequence
                      "grammar.rkt"))
 
 (provide (all-defined-out))
@@ -126,7 +127,10 @@
     #:literal-sets (contract-literals)
     [(_ (arguments [x:id a:expr] ...)
         (result r:expr))
-     #'(#%Function (arguments [x a] ...)
+     #:with (x^ ...)
+     (for/list ([x (in-syntax #'(x ...))])
+       (if (eq? (syntax-e x) '_) (gensym) x))
+     #'(#%Function (arguments [x^ a] ...)
                    (result r))]))
 
 (define-contract-syntax ->
