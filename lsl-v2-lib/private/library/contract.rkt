@@ -8,7 +8,7 @@
 
 (require (filtered-in
           (lambda (name) (regexp-replace #rx"lsl:" name ""))
-           (combine-in
+          (combine-in
            "core.rkt"
            "boolean.rkt"
            "char.rkt"
@@ -28,38 +28,42 @@
 
 (#%lsl
  #;(define-contract Any
-  (Immediate
-   (check (λ _ #t))
-   (generate
-    (λ (fuel)
-      ((random-ref
-        (list (λ () (contract-generate Boolean fuel))
-              (λ () (contract-generate Integer fuel))
-              (λ () (contract-generate Real fuel))
-              (λ () (contract-generate Natural fuel))
-              (λ () (contract-generate String fuel))
-              (λ () (contract-generate Symbol fuel)))))))))
+     (Immediate
+      (check (λ _ #t))
+      (generate
+       (λ (fuel)
+         ((random-ref
+           (list (λ () (contract-generate Boolean fuel))
+                 (λ () (contract-generate Integer fuel))
+                 (λ () (contract-generate Real fuel))
+                 (λ () (contract-generate Natural fuel))
+                 (λ () (contract-generate String fuel))
+                 (λ () (contract-generate Symbol fuel)))))))))
 
-(define-contract Boolean
-  (Immediate (check boolean?)
-             (generate (λ (fuel) (< (random) 1/2)))))
+ (define-contract Boolean
+   (Immediate (check boolean?)
+              (generate (λ (fuel) (< (random) 1/2)))))
 
-(define-contract True (Immediate (check (λ (x) (equal? x #t)))
-                                 (generate (λ (fuel) #t))))
-(define-contract False (Immediate (check (λ (x) (equal? x #f)))
-                                 (generate (λ (fuel) #f))))
+ (define-contract True (Immediate (check (λ (x) (equal? x #t)))
+                                  (generate (λ (fuel) #t))))
+ (define-contract False (Immediate (check (λ (x) (equal? x #f)))
+                                   (generate (λ (fuel) #f))))
 
-(define-contract (Maybe T) (OneOf False T))
+ (define-contract (Maybe T) (OneOf False T))
 
-(define-contract Integer
-  (Immediate (check integer?)
-             (generate (λ (fuel) (if (zero? fuel) 0 (random (* -1 fuel) fuel))))
-             (shrink (λ (fuel val)
-                       (if (zero? val) 0 (floor (/ val 2)))))))
+ (define-contract Integer
+   (Immediate (check integer?)
+              (generate (λ (fuel) (if (zero? fuel) 0 (random (* -1 fuel) fuel))))
+              (shrink (λ (fuel val)
+                        (if (zero? val) 0 (floor (/ val 2)))))))
 
-(define-contract Real
-  (Immediate (check real?)
-             (generate (λ (fuel) (- (* 2 fuel (random)) fuel)))))
+ (define-contract Natural
+   (Immediate (check natural?)
+              (generate (λ (fuel) (random 0 (add1 fuel))))))
 
-(define-contract (NonemptyList X)
-  (AllOf (List X) cons?)))
+ (define-contract Real
+   (Immediate (check real?)
+              (generate (λ (fuel) (- (* 2 fuel (random)) fuel)))))
+
+ (define-contract (NonemptyList X)
+   (AllOf (List X) cons?)))

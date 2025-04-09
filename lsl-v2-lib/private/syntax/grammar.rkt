@@ -38,7 +38,7 @@ GRAMMAR
        | <lsl-expr>
 
 <lsl-expr> := <datum>
-            | (quote <datum>)
+            | (quote <expr>)
             | <lsl-id>
             | (cond [<lsl-expr> <lsl-expr>] ...
                     [else <lsl-expr>)
@@ -53,7 +53,7 @@ GRAMMAR
                   <lsl-expr>)
             | (letrec ([<lsl-id> <lsl-expr>] ...)
                     <lsl-expr>)
-            | (local [<local-definition> ...]
+            | (local [<lsl-def> ...]
                  <lsl-expr>)
             | (<lsl-expr> <lsl-expr> ...)
 
