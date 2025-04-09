@@ -15,7 +15,7 @@
     #:description "local definition"
     #:datum-literals (define define-contract :)
     (pattern (~or (~and (~or (define v:id b:expr)
-                             (define (v:id args:id ...))
+                             (define (v:id args:id ...) body:expr)
                              (define-contract v:id c:expr)
                              (define-contract (v:id args:id ...) c:expr))
                         (~bind (bound-id #'v)))
