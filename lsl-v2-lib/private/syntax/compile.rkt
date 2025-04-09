@@ -167,7 +167,10 @@
     [(_ (#%Struct i:struct-id (e:expr ...)))
      #'(compile-struct unexpanded i e ...)]
     [(_ (#%ctc-id i:id))
-     #'(rt:validate-contract-id i #'i)]
+     #`(if (procedure? i)
+           ;; TODO: refactor this away
+           (compile-contract #,(syntax-property #'(#%ctc-app i) 'unexpanded #'(#%ctc-id i:id)))
+           i)]
     [(_ (#%contract-lambda (arg:id ...) c:expr))
      #'(lambda (arg ...) (compile-contract c))]
     [(_ (#%ctc-app i:id e:expr ...))
@@ -197,7 +200,6 @@
     [(_ unexpanded (x c) ... r)
      (define arg-clauses (compute-arg-clause-mapping (attribute x) (attribute c)))
      (define/syntax-parse ((x^ c^ i) ...) (order-clauses this-syntax arg-clauses))
-
      (define ids (attribute x^))
      ;; maybe instead of lambdas, do let*?
      (define/syntax-parse ((x^^ ...) ...) (build-list (length ids) (lambda (i) (take ids i))))

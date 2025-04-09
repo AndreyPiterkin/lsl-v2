@@ -31,13 +31,6 @@
                         "invalid immediate contract (must be a predicate)"
                         proc-stx)))
 
-;; Contract Identifier -> Contract
-;; Returns the given contract if it is not a procedure, otherwise errors
-(define (validate-contract-id ctc-id ctc-stx)
-  (if (procedure? ctc-id)
-      (raise-syntax-error #f "must instantiate parameterized contract" ctc-stx)
-      ctc-id))
-
 (define (make-immediate ctc-unexpanded check-unexpanded check gen shrink features)
   (validate-flat-contract! check check-unexpanded)
   (new immediate%

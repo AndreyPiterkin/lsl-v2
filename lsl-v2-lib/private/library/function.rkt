@@ -25,4 +25,5 @@
   (lsl:identity identity)
   (lsl:map map)
   (lsl:memf memf)
-  (lsl:sort sort))
+  (lsl:sort sort)
+  (lsl:raise raise))

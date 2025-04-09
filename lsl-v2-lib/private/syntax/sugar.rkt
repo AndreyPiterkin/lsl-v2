@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require "spec.rkt"
+         syntax-spec-v3
          (for-syntax racket/base
                      racket/list
                      racket/function
@@ -57,7 +58,13 @@
         e:expr)
      #'(#%define-contract x (#%contract-lambda (args ...) e))]
     [(_ x:id e:expr)
-     #'(#%define-contract x e)]))
+     ;; TODO: DO NOT DO THIS
+     (define free-vars (flatten (syntax->datum #'e)))
+     (define/syntax-parse e^
+       (if (member (syntax->datum #'x) free-vars)
+           #'(#%contract-lambda () e)
+           #'e))
+     #'(#%define-contract x e^)]))
 
 (define-lsl-form-syntax lambda
   (syntax-parser

@@ -18,11 +18,14 @@
 
     ;; Any PositiveBlame -> Any
     (define/override (protect val pos)
-      (define guards (apply-contracts val pos))
-      (match (filter passed-guard? guards)
-        [(list g)
-         g]
-        [_
-         (failed-guard
+      (define maybe-guard
+        (for/or ([ctc disjuncts])
+          (define guard (send ctc protect val pos))
+          (if (passed-guard? guard)
+              guard
+              #f)))
+      (if maybe-guard
+          maybe-guard
+          (failed-guard
           (lambda (val neg)
-            (contract-error this stx val pos)))]))))
+            (contract-error this stx val pos)))))))
