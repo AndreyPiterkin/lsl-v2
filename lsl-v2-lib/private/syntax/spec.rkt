@@ -177,7 +177,7 @@
 
  (host-interface/definitions
   (#%lsl e:lsl-form ...)
-  #:binding (scope (import e) ...)
+  #:binding ((re-export e) ...)
   ;; TODO: expand to explicit module begin; for some reason I get a massive error
   #'(begin (compile-lsl/lsl-form e) ...))
 
