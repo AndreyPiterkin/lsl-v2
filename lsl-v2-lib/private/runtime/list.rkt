@@ -18,7 +18,7 @@
     (define (contracts-list len)
       (if fixed?
           contracts
-          (make-list (first contracts) len)))
+          (make-list len (first contracts))))
 
     (define/override (protect val pos)
       (define is-list? (list? val))
