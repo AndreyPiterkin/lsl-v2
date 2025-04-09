@@ -27,8 +27,41 @@
 ;(define-lsl-library lsl:Integer Integer)
 
 (#%lsl
- (define-contract Integer
-   (Immediate (check lsl:integer?)
-              (generate (λ (fuel) (if (zero? fuel) 0 (random (* -1 fuel) fuel))))
-              (shrink (λ (fuel val)
-                        (if (zero? val) 0 (floor (/ val 2))))))))
+ #;(define-contract Any
+  (Immediate
+   (check (λ _ #t))
+   (generate
+    (λ (fuel)
+      ((random-ref
+        (list (λ () (contract-generate Boolean fuel))
+              (λ () (contract-generate Integer fuel))
+              (λ () (contract-generate Real fuel))
+              (λ () (contract-generate Natural fuel))
+              (λ () (contract-generate String fuel))
+              (λ () (contract-generate Symbol fuel)))))))))
+
+(define-contract Boolean
+  (Immediate (check boolean?)
+             (generate (λ (fuel) (< (random) 1/2)))))
+
+(define-contract (Constant v)
+  (Immediate (check (λ (x) (equal? x v)))
+             (generate (λ (fuel) v))))
+
+(define-contract True (Constant #t))
+(define-contract False (Constant #f))
+
+(define-contract (Maybe T) (OneOf False T))
+
+(define-contract Integer
+  (Immediate (check integer?)
+             (generate (λ (fuel) (if (zero? fuel) 0 (random (* -1 fuel) fuel))))
+             (shrink (λ (fuel val)
+                       (if (zero? val) 0 (floor (/ val 2)))))))
+
+(define-contract Real
+  (Immediate (check real?)
+             (generate (λ (fuel) (- (* 2 fuel (random)) fuel)))))
+
+(define-contract (NonemptyList X)
+  (AllOf (List X) cons?)))
