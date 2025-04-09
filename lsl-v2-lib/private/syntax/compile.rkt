@@ -3,10 +3,12 @@
 
 (require (for-syntax racket/base
                      racket/list
+                     racket/function
                      syntax/parse
                      syntax/struct
                      racket/syntax
                      syntax/parse/class/struct-id
+                     racket/struct-info
                      "grammar.rkt")
          "../runtime/function.rkt"
          "../runtime/oneof.rkt"
@@ -21,7 +23,8 @@
          racket/struct
          racket/local
          racket/promise
-         syntax/location)
+         syntax/location
+         racket/generic)
 
 (provide compile-lsl/lsl-form)
 
@@ -38,8 +41,8 @@
     #:literal-sets (lsl-literals)
     [(_ (#%define v b))
      #'(compile-define v b)]
-    [(_ (#%define-struct name (field ...) ctor pred accessor ...))
-     #`(compile-define-struct name (field ...) ctor pred accessor ...)]
+    [(_ (~and (#%define-struct name (field ...) struct ctor pred accessor ...) def))
+     #`(compile-define-struct #,(get-unexpanded #'def) name (field ...) struct ctor pred accessor ...)]
     [(_ (: v ctc))
      (do-attach-contract #'v #'ctc)
      #'(begin)]
@@ -74,26 +77,42 @@
 
 (define-syntax (compile-define-struct stx)
   (syntax-parse stx
-    [(_ name (field ...) ctor pred accessor ...)
-     #:with prefix (gensym)
-     #:with name^ (format-id #'name "~a:~a" #'prefix #'name)
-     #:with (_ _ pred^ accessor^ ...)
-     (build-struct-names #'name^ (syntax->list #'(field ...)) #f #t)
+    [(_ unexpanded name (field ...) struct ctor pred accessor ...)
+     (define num-fields (length (attribute accessor)))
+     (define/syntax-parse (reversed-accessor ...) (reverse (attribute accessor)))
+     (define/syntax-parse (f ...) (build-list num-fields (lambda (_) #f)))
+     (define/syntax-parse (pos ...) (build-list num-fields identity))
      #`(begin
-         (struct name^ (field ...)
-           #:transparent
-           #:constructor-name ctor
-           #:name name
-           #:property prop:custom-print-quotable 'never
-           #:methods gen:custom-write
-           [(define write-proc
-              (make-constructor-style-printer
-               (lambda (obj) 'ctor)
-               (lambda (obj) (list (accessor^ obj) ...))))])
-         ;; TODO: hide arity errors
-         (define pred (procedure-rename pred^ 'pred))
-         (define accessor (procedure-rename accessor^ 'accessor))
-         ...)]))
+         (define-values (struct ctor pred accessor ...)
+           (let-values ([(struct^ ctor^ pred^ accessor^ _)
+                         (make-struct-type '#,#'name
+                                           #f
+                                           #,num-fields
+                                           0
+                                           #f
+                                           (list (cons prop:custom-print-quotable 'never)
+                                                 (cons (make-generic-struct-type-property
+                                                        gen:custom-write
+                                                        (define write-proc
+                                                          (make-constructor-style-printer
+                                                           (lambda (obj) 'ctor)
+                                                           (lambda (obj) (list (accessor obj) ...)))))
+                                                       0))
+                                           #f
+                                           #f
+                                           (list (#%datum . pos) ...)
+                                           #f
+                                           'ctor)])
+             (apply values
+                    (list
+                     struct^
+                     ctor^
+                     pred^
+                     (make-struct-field-accessor accessor^ (#%datum . pos) 'field) ...))))
+         (define-syntax name
+           (make-struct-info
+            (lambda ()
+              (list #'struct #'ctor #'pred (list #'reversed-accessor ...) (list (#%datum . f) ...) #t)))))]))
 
 (define-syntax (compile-define-contract stx)
   (syntax-parse stx

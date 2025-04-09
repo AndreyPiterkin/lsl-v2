@@ -48,9 +48,9 @@
 (define-lsl-form-syntax define-struct
   (syntax-parser
     [(_ name:id (field:id ...))
-     #:with (_ ctor pred accessors ...)
+     #:with (struct ctor pred accessors ...)
      (build-struct-names #'name (syntax->list #'(field ...)) #f #t)
-     #'(#%define-struct name (field ...) ctor pred accessors ...)]))
+     #'(#%define-struct name (field ...) struct ctor pred accessors ...)]))
 
 (define-lsl-form-syntax define-contract
   (syntax-parser

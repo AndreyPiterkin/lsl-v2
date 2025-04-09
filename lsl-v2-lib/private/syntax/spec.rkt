@@ -67,8 +67,8 @@
   #:binding-space lsl
   #:allow-extension lsl-form-macro
 
-  (#%define-struct name:lsl-id (field:id ...) ctor:lsl-id pred:lsl-id accessor:lsl-id ...)
-  #:binding ((export name) (export ctor) (export pred) (export accessor) ...)
+  (#%define-struct name:lsl-id (field:id ...) struct:lsl-id ctor:lsl-id pred:lsl-id accessor:lsl-id ...)
+  #:binding ((export name) (export struct) (export ctor) (export pred) (export accessor) ...)
 
   (#%define-contract def:ctc-id c:ctc)
   #:binding (export def)
