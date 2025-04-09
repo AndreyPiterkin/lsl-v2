@@ -170,12 +170,14 @@
  ;; TODO: expand to explicit module begin; for some reason I get a massive error
  #'(begin (compile-lsl/lsl-form e) ...))
 
+;; TODO: any way to make this cleaner?
 (host-interface/definitions
  (define-lsl-library (v:lsl-id r:racket-expr)...+)
  #:binding ((export v) ...)
  #'(begin (define v r) ...))
 
 (host-interface/definitions
+ ;; TODO: maybe contract in terms of LSL contracts?
  (define-contracted-lsl-library (v:lsl-id c:racket-expr e:racket-expr) ...+)
  #:binding ((export v) ...)
  #'(begin (define/contract v c e) ...)))
