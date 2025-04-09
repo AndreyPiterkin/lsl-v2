@@ -85,9 +85,9 @@
      #'(cond [(compile-lsl/lsl-expr c) (compile-lsl/lsl-expr e)] ...
              [else (void)])]
     [(_ (and e ...))
-     #'(and e ...)]
+     #'(and (compile-lsl/lsl-expr e) ...)]
     [(_ (or e ...))
-     #'(or e ...)]
+     #'(or (compile-lsl/lsl-expr e) ...)]
     [(_ (if c t e)) #'(if (compile-lsl/lsl-expr c)
                           (compile-lsl/lsl-expr t)
                           (compile-lsl/lsl-expr e))]

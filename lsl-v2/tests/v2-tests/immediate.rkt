@@ -72,12 +72,11 @@
 
    #:do (define even-sexp
           '(define-contract Even
-             (Immediate (check (lambda (x) (if (integer? x) (even? x) #f))))))
+             (Immediate (check (lambda (x) (and (integer? x) (even? x)))))))
    (run/sexp even-sexp '(: x Even) '(define x 2) 'x)  2
    #:x (run/sexp even-sexp '(: x Even) '(define x 1) 'x)  "expected: (Imm" ;; TODO: Fix error message.
 
    #|
-   TODO: Fix `local`.
    #:x
    (run (define (f x)
           (local [(: g (-> integer? integer?))
