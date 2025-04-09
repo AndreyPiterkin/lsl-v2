@@ -1,7 +1,10 @@
 #lang racket
 
 (require "contract-common.rkt"
-         "immediate.rkt")
+         "immediate.rkt"
+         "../proxy.rkt"
+         "../util.rkt"
+         rackunit)
 
 (provide (prefix-out rt: (all-defined-out)))
 
@@ -51,3 +54,36 @@
 
 (define (contract-generate ctc [fuel DEFAULT-FUEL]) 
   (send ctc generate fuel))
+
+;; TODO: parameterize by scaling?
+(define (scale-fuel x)
+  (if (zero? x) x (inexact->exact (ceiling (log x)))))
+
+(define-check (check-contract val name n)
+  (define ctc (proxy->contract val))
+  (if ctc
+      (for ([fuel (in-range 2 (+ n 2))])
+        (do-check-contract
+         ctc val name
+         (λ (ctc) (send ctc generate (scale-fuel fuel)))))
+      (fail-check (format "unknown contract for ~a" name))))
+
+(define (do-check-contract ctc val name contract->value)
+  (match (send ctc interact val name contract->value)
+    [(list eg exn)
+     (fail-check (format VERIFY-FMT eg (indent (exn-message exn))))]
+    [(none)
+     (fail-check "failed to generate values associated with contract")]
+    [#f
+     (void)]))
+
+(define (indent str)
+  (string-append "  " (string-replace str "\n" "\n    ")))
+
+(define VERIFY-FMT
+  (string-join
+   '("discovered a counterexample"
+     "counterexample: ~a"
+     "error:"
+     "~a")
+   "\n  "))

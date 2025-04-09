@@ -14,6 +14,7 @@
          (struct-out negative-blame)
          blame->polarity
          (struct-out exn:fail:lsl:contract)
+         (struct-out exn:fail:lsl:user)
          unimplemented-error!
          contract-error)
 
@@ -29,6 +30,8 @@
 (struct exn:fail:lsl:contract exn:fail (srclocs)
   #:property prop:exn:srclocs
   (lambda (self) (exn:fail:lsl:contract-srclocs self)))
+
+(struct exn:fail:lsl:user exn:fail (val))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; exn functions

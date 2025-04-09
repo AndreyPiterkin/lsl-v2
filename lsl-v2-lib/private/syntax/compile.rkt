@@ -91,6 +91,8 @@
     [(_ (if c t e)) #'(if (compile-lsl/lsl-expr c)
                           (compile-lsl/lsl-expr t)
                           (compile-lsl/lsl-expr e))]
+    [(_ (check-contract id (~optional n:number #:defaults ([n #'100])))) ;; TODO: Pull into runtime constant.
+      #'(rt:check-contract id 'id n)]
     [(_ (contract-generate c))
      #'(rt:contract-generate (compile-contract c))]
     [(_ (contract-generate c fuel))

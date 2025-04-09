@@ -7,7 +7,8 @@
          (struct-out proxy)
          (struct-out proc)
          gen:equatable
-         unproxy)
+         unproxy
+         proxy->contract)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; data
@@ -51,3 +52,6 @@
   (if (proxy? st)
       (unproxy ((proxy-unwrap st)))
       st))
+
+(define (proxy->contract p)
+  (and (proxy? p) (proxy-contract p)))

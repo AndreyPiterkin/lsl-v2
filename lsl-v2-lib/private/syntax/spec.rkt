@@ -58,6 +58,8 @@
   #:binding-space lsl
   (provide v:lsl-id ...)
   
+  (check-contract v:lsl-id)
+
   e:lsl-def-or-expr
   #:binding (re-export e))
 
