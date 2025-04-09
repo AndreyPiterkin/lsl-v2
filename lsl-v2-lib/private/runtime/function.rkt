@@ -27,7 +27,7 @@
                                  #:expected (args-error arity)
                                  #:given (args-error n-args)))
 
-               (define args*
+               (define args^
                  (for/fold ([guarded-args '()])
                            ([i domain-order]
                             [domain domains])
@@ -37,8 +37,15 @@
                    ;; have to append because it has to be constructed in the un-reversed order
                    (append guarded-args (list (guard arg pos)))))
 
-               (define result (apply val args*))
-               (define guard (send (apply codomain args*) protect result pos))
+               ;; reconstruct the order of the arguments
+               (define args^^
+                 (for/fold ([args (build-list n-args (lambda (_) 0))])
+                           ([i domain-order]
+                            [arg args^])
+                   (list-set args i arg)))
+
+               (define result (apply val args^^))
+               (define guard (send (apply codomain args^^) protect result pos))
                (guard result neg))
              (proc val contract-apply this (thunk val))))
 
