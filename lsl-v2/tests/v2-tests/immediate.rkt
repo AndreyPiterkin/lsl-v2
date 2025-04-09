@@ -31,13 +31,13 @@
          [shrinker (lambda (fuel val) (floor (/ val 2)))]))
 
   (define even-ctc
-      (new immediate%
-          [stx (syntax/unexpanded even?)]
-          [checker (lambda (x) (and (integer? x) (even? x)))]
-          [generator (lambda (fuel) (if (zero? fuel) 0 (* 2 (random fuel))))]
-          [shrinker (lambda (fuel val)
-                      (define val* (floor (/ val 2)))
-                      (if (odd? val*) (sub1 val*) val*))])))
+    (new immediate%
+         [stx (syntax/unexpanded even?)]
+         [checker (lambda (x) (and (integer? x) (even? x)))]
+         [generator (lambda (fuel) (if (zero? fuel) 0 (* 2 (random fuel))))]
+         [shrinker (lambda (fuel val)
+                     (define val* (floor (/ val 2)))
+                     (if (odd? val*) (sub1 val*) val*))])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; unit tests
@@ -54,6 +54,13 @@
    (send even-ctc protect 3 #f)
    #:x ((send even-ctc protect 3 #f) 3 #f)
    "expected: even?"
+
+   #:? even?
+   (send even-ctc generate 1)
+   (send even-ctc shrink 1 4)  2
+   (send even-ctc shrink 1 5)  2
+
+   (send even-ctc interact 'generate 1 #f)  #f
    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -61,8 +68,10 @@
 
 (module+ test
   (chk
-   (run (: x integer?) (define x 10) x)  10
-   #:x (run (: x integer?) (define x 1/2) x)  "expected: integer?"
+   (run (: x Integer) (define x 10) x)  10
+   #:x (run (: x Integer) (define x 1/2) x)  "expected: (Imm"
+   #:? integer?
+   (run (contract-generate Integer))
 
    (run (: x real?) (define x 3.14) x)  3.14
    #:x (run (: x real?) (define x #t) x)  "given: #t"

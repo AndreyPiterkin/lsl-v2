@@ -97,6 +97,9 @@
      t:lsl-expr
      e:lsl-expr)
 
+ (contract-generate c:ctc)
+ (contract-generate c:ctc fuel:lsl-expr)
+
  (#%lambda (v:lsl-id ...) b:lsl-expr)
  #:binding (scope (bind v) ... b)
 

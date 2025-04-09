@@ -46,3 +46,8 @@
        [generator gen]
        [shrinker shrink]
        [features features]))
+
+(define DEFAULT-FUEL 50)
+
+(define (contract-generate ctc [fuel DEFAULT-FUEL]) 
+  (send ctc generate fuel))

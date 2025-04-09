@@ -66,7 +66,7 @@ GRAMMAR
 
 ;; Set of literals that belong in lsl-form position
 (define-literal-set lsl-literals
-  #:datum-literals (cond else and or if quote #%let #%letrec #%local provide #%lambda
+  #:datum-literals (cond else and or if quote contract-generate #%let #%letrec #%local provide #%lambda
                          #%lsl-app #%define : #%define-contract #%contract-lambda)
   ())
 

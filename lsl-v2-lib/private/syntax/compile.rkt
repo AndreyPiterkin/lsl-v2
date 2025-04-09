@@ -91,6 +91,10 @@
     [(_ (if c t e)) #'(if (compile-lsl/lsl-expr c)
                           (compile-lsl/lsl-expr t)
                           (compile-lsl/lsl-expr e))]
+    [(_ (contract-generate c))
+     #'(rt:contract-generate (compile-contract c))]
+    [(_ (contract-generate c fuel))
+     #'(rt:contract-generate (compile-contract c) (compile-lsl/lsl-expr fuel))]
     [(_ (#%lambda (args ...) e))
      #'(lambda (args ...) (compile-lsl/lsl-expr e))]
     [(_ (#%local (d ...) b))
