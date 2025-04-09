@@ -110,7 +110,6 @@
 (define-contract-syntax Function
   (syntax-parser
     #:literal-sets (contract-literals)
-    ;; todo: get rid of unordering (result should always come after args)
     [(_ (arguments [x:id a:expr] ...)
         (result r:expr))
      #'(#%Function (arguments [x a] ...)
