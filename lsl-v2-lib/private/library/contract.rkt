@@ -44,12 +44,10 @@
   (Immediate (check boolean?)
              (generate (λ (fuel) (< (random) 1/2)))))
 
-(define-contract (Constant v)
-  (Immediate (check (λ (x) (equal? x v)))
-             (generate (λ (fuel) v))))
-
-(define-contract True (Constant #t))
-(define-contract False (Constant #f))
+(define-contract True (Immediate (check (λ (x) (equal? x #t)))
+                                 (generate (λ (fuel) #t))))
+(define-contract False (Immediate (check (λ (x) (equal? x #f)))
+                                 (generate (λ (fuel) #f))))
 
 (define-contract (Maybe T) (OneOf False T))
 
