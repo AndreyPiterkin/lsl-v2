@@ -100,6 +100,19 @@
         (times 2 1))
    2
 
+   (run (: in-range (Function (arguments (min integer?)
+                                         (max (lambda (x)
+                                                (>= x min)))
+                                         (v integer?))
+                              (result boolean?)))
+
+        (define (in-range min max v)
+          (and (>= v min)
+               (<= v max)))
+
+        (in-range 1 5 3))
+   #t
+
    #:x (run (: f (-> integer? boolean?))
             (define (f x) x)
             (f 10))
