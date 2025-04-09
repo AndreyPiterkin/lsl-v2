@@ -77,9 +77,17 @@
      #''t]
     [(_ i:id)
      #'i]
-    [(_ (cond [c e] ... [else el]))
+    [(_ (cond [c e] ...
+              [else el]))
      #'(cond [(compile-lsl/lsl-expr c) (compile-lsl/lsl-expr e)] ...
              [else (compile-lsl/lsl-expr el)])]
+    [(_ (cond [c e] ...))
+     #'(cond [(compile-lsl/lsl-expr c) (compile-lsl/lsl-expr e)] ...
+             [else (void)])]
+    [(_ (and e ...))
+     #'(and e ...)]
+    [(_ (or e ...))
+     #'(or e ...)]
     [(_ (if c t e)) #'(if (compile-lsl/lsl-expr c)
                           (compile-lsl/lsl-expr t)
                           (compile-lsl/lsl-expr e))]

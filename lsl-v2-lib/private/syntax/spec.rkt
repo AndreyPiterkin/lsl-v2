@@ -84,97 +84,98 @@
   (quote t:literal)
   i:lsl-id
  
-
-  ;; TODO: optional else clause (macro)
+  (cond [c:lsl-expr e:lsl-expr] ...)
   (cond [c:lsl-expr e:lsl-expr] ...
         [(~datum else) else:lsl-expr])
 
-  ;; TODO: other core/special forms: and, or, set!, require, define-struct,
-  ;;                                 define-mutable-struct, raise
+ ;; TODO: other core/special forms: set!, require, define-struct,
+ ;;                                 define-mutable-struct, raise(?)
+ (and e:lsl-expr ...)
+ (or e:lsl-expr ...)
 
-  (if c:lsl-expr
-      t:lsl-expr
-      e:lsl-expr)
+ (if c:lsl-expr
+     t:lsl-expr
+     e:lsl-expr)
 
-  (#%lambda (v:lsl-id ...) b:lsl-expr)
-  #:binding (scope (bind v) ... b)
+ (#%lambda (v:lsl-id ...) b:lsl-expr)
+ #:binding (scope (bind v) ... b)
 
-  (#%let ([v:lsl-id e:lsl-expr] ...)
-         b:lsl-expr)
-  #:binding (scope (bind v) ... b)
+ (#%let ([v:lsl-id e:lsl-expr] ...)
+        b:lsl-expr)
+ #:binding (scope (bind v) ... b)
 
-  (#%local (d:lsl-def-or-expr ...)
-           b:lsl-expr)
-  #:binding (scope (import d) ... b)
+ (#%local (d:lsl-def-or-expr ...)
+          b:lsl-expr)
+ #:binding (scope (import d) ... b)
 
-  (#%letrec ([v:lsl-id e:lsl-expr] ...)
-            body:lsl-expr)
-  #:binding (scope (bind v) ... e ... body)
+ (#%letrec ([v:lsl-id e:lsl-expr] ...)
+           body:lsl-expr)
+ #:binding (scope (bind v) ... e ... body)
 
-  (#%lsl-app f:lsl-expr arg:lsl-expr ...)
+ (#%lsl-app f:lsl-expr arg:lsl-expr ...)
 
-  (~> (f:expr e:expr ...)
-      (tag-syntax-with-unexpanded #'(#%lsl-app f e ...) this-syntax))
+ (~> (f:expr e:expr ...)
+     (tag-syntax-with-unexpanded #'(#%lsl-app f e ...) this-syntax))
 
-  (~> (~or lit:number lit:string lit:boolean)
-      (tag-syntax-with-unexpanded #'(quote lit) this-syntax)))
+ (~> (~or lit:number lit:string lit:boolean)
+     (tag-syntax-with-unexpanded #'(quote lit) this-syntax)))
 
- (nonterminal literal
-              #:description "literal value"
-              n:number
-              s:string
-              b:boolean
-              i:id)
+(nonterminal literal
+             #:description "literal value"
+             n:number
+             s:string
+             b:boolean
+             i:id)
 
- (nonterminal
-  ctc
-  #:description "contract"
-  #:allow-extension contract-macro
-  (#%ctc-id i:ctc-id)
+(nonterminal
+ ctc
+ #:description "contract"
+ #:allow-extension contract-macro
+ (#%ctc-id i:ctc-id)
 
-  (#%contract-lambda (arg:ctc-id ...) c:ctc)
-  #:binding (scope (bind arg) ... c)
+ (#%contract-lambda (arg:ctc-id ...) c:ctc)
+ #:binding (scope (bind arg) ... c)
 
-  (#%ctc-app i:ctc-id args:ctc ...)
+ (#%ctc-app i:ctc-id args:ctc ...)
 
-  (#%Immediate ((~datum check) pred:lsl-expr)
-               ((~datum generate) gen:lsl-expr)
-               ((~datum shrink) shrk:lsl-expr)
-               ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
+ (#%Immediate ((~datum check) pred:lsl-expr)
+              ((~datum generate) gen:lsl-expr)
+              ((~datum shrink) shrk:lsl-expr)
+              ((~datum feature) feat-name:lsl-expr feat:lsl-expr) ...)
 
-  (#%Function ((~datum arguments) [v:lsl-id e:ctc] ...)
-              ((~datum result) c:ctc))
-  #:binding (scope (bind v) ... e ... c)
+ (#%Function ((~datum arguments) [v:lsl-id e:ctc] ...)
+             ((~datum result) c:ctc))
+ #:binding (scope (bind v) ... e ... c)
 
-  (#%OneOf c:ctc ...)
-  (#%AllOf c:ctc ...)
-  (#%Tuple c:ctc ...)
-  (#%List c:ctc)
+ (#%OneOf c:ctc ...)
+ (#%AllOf c:ctc ...)
+ (#%Tuple c:ctc ...)
+ (#%List c:ctc)
 
-  (~> x:id
-      #:when (lookup #'x (binding-class-predicate ctc-id))
-      (tag-syntax-with-unexpanded #'(#%ctc-id x) this-syntax))
+ (~> x:id
+     #:when (lookup #'x (binding-class-predicate ctc-id))
+     (tag-syntax-with-unexpanded #'(#%ctc-id x) this-syntax))
 
-  (~> (i:id e:expr ...)
-      #:when (lookup #'i (binding-class-predicate ctc-id))
-      (tag-syntax-with-unexpanded #'(#%ctc-app i e ...) this-syntax))
+ (~> (i:id e:expr ...)
+     #:when (lookup #'i (binding-class-predicate ctc-id))
+     (tag-syntax-with-unexpanded #'(#%ctc-app i e ...) this-syntax))
 
-  (~> e:expr
-      (tag-syntax-with-unexpanded #'(#%Immediate (check e) (generate #f) (shrink #f))
-                                  this-syntax)))
+ (~> e:expr
+     (tag-syntax-with-unexpanded #'(#%Immediate (check e) (generate #f) (shrink #f))
+                                 this-syntax)))
 
- (host-interface/definitions
-  (#%lsl e:lsl-form ...)
-  #:binding ((re-export e) ...)
-  ;; TODO: expand to explicit module begin; for some reason I get a massive error
-  #'(begin (compile-lsl/lsl-form e) ...))
+(host-interface/definitions
+ (#%lsl e:lsl-form ...)
+ #:binding ((re-export e) ...)
+ ;; TODO: expand to explicit module begin; for some reason I get a massive error
+ #'(begin (compile-lsl/lsl-form e) ...))
 
- (host-interface/definitions
-  (define-lsl-library (v:lsl-id r:racket-expr)...+)
-  #:binding ((export v) ...)
-  #'(begin (define v r) ...))
+(host-interface/definitions
+ (define-lsl-library (v:lsl-id r:racket-expr)...+)
+ #:binding ((export v) ...)
+ #'(begin (define v r) ...))
 
- (host-interface/definitions
-  (define-contracted-lsl-library (v:lsl-id c:racket-expr e:racket-expr) ...+)
-  #:binding ((export v) ...)
-  #'(begin (define/contract v c e) ...)))
+(host-interface/definitions
+ (define-contracted-lsl-library (v:lsl-id c:racket-expr e:racket-expr) ...+)
+ #:binding ((export v) ...)
+ #'(begin (define/contract v c e) ...)))

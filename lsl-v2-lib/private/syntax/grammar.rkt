@@ -41,6 +41,8 @@ GRAMMAR
             | (cond [<lsl-expr> <lsl-expr>] ...
                     [else <lsl-expr>)
             | (cond [<lsl-expr> <lsl-expr>] ...)
+            | (and <lsl-expr> ...)
+            | (or <lsl-expr> ...)
             | (if <lsl-expr> <lsl-expr> <lsl-expr>)
             | (lambda (<lsl-id> ...) <lsl-expr>)
             | (let ([<lsl-id> <lsl-expr>] ...)
@@ -64,7 +66,8 @@ GRAMMAR
 
 ;; Set of literals that belong in lsl-form position
 (define-literal-set lsl-literals
-  #:datum-literals (cond else if quote #%let #%letrec #%local provide #%lambda #%lsl-app #%define : #%define-contract #%contract-lambda)
+  #:datum-literals (cond else and or if quote #%let #%letrec #%local provide #%lambda
+                         #%lsl-app #%define : #%define-contract #%contract-lambda)
   ())
 
 ;; Set of literals that are found in contract position
