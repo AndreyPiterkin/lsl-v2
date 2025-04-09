@@ -107,10 +107,9 @@
            b:lsl-expr)
   #:binding (scope (import d) ... b)
 
-  ;; todo: is this the correct semantics?
   (#%letrec ([v:lsl-id e:lsl-expr] ...)
             body:lsl-expr)
-  #:binding (scope (bind v) ... body)
+  #:binding (scope (bind v) ... e ... body)
 
   (#%lsl-app f:lsl-expr arg:lsl-expr ...)
 
