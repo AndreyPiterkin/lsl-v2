@@ -93,44 +93,6 @@
      #'(lambda (x* ...) e)]))
 
 (begin-for-syntax
-  (define (check-same-arguments! def-id def-stx stx)
-    (syntax-parse stx
-      #:literal-sets (contract-literals)
-      [(#%Function (arguments (x:id c:expr) ...)
-                   (result r:expr))
-       (define sub-contracts (append (attribute r) (attribute c)))
-       (map (curry check-same-arguments! def-id def-stx) sub-contracts)]
-      [(#%OneOf e:expr ...)
-       (define sub-contracts (attribute e))
-       (map (curry check-same-arguments! def-id def-stx) sub-contracts)]
-      [(#%AllOf e:expr ...)
-       (define sub-contracts (attribute e))
-       (map (curry check-same-arguments! def-id def-stx) sub-contracts)]
-      [(#%List e:expr)
-       (check-same-arguments! def-id def-stx (attribute e))]
-      [(#%Tuple e:expr ...)
-       (define sub-contracts (attribute e))
-       (map (curry check-same-arguments! def-id def-stx) sub-contracts)]
-      [(#%ctc-id i:id)
-       (println #'i)
-       (when (and (free-identifier=? #'i def-id)
-                  (not (= (length (syntax->list def-stx)) 1)))
-         (raise-syntax-error #f "recursive contract not instantiated" #'i))]
-      [(~and (#%ctc-app i:id e:expr ...) app-stx)
-       (when (and (free-identifier=? #'i def-id)
-                  (or (not (= (length (syntax->list def-stx))
-                              (length (syntax->list #'app-stx))))
-                      (andmap free-identifier=? (syntax->list def-stx) (syntax->list #'app-stx))))
-         (raise-syntax-error #f "recursive contract not instantiated with same arguments"
-                             #'app-stx))]
-      
-      [(#%contract-lambda (arg:id ...) c:expr)
-       (raise 'unreachable)]
-      [(#%Immediate (check pred:expr)
-                    (generate g:expr)
-                    (shrink shr:expr)
-                    (feature feat-name:expr feat:expr) ...)
-       (void)]))
 
   ;; Given a cons of syntax, extract the last one
   (define (get-last-unexpanded lostx)
@@ -138,6 +100,7 @@
         (get-last-unexpanded (cdr lostx))
         lostx))
 
+  ;; Given syntax, extract the most unexpanded version of it from its properties
   (define (get-unexpanded stx)
     (define maybe-unexpanded (get-last-unexpanded (syntax-property stx 'unexpanded)))
     (if maybe-unexpanded
