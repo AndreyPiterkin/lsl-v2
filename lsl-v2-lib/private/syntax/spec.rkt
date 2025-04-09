@@ -63,7 +63,12 @@
 
  (nonterminal/exporting
   lsl-def-or-expr
+  ;; shadow define-struct
+  #:binding-space lsl
   #:allow-extension lsl-form-macro
+
+  (#%define-struct name:lsl-id (field:id ...) ctor:lsl-id pred:lsl-id accessor:lsl-id ...)
+  #:binding ((export name) (export ctor) (export pred) (export accessor) ...)
 
   (#%define-contract def:ctc-id c:ctc)
   #:binding (export def)
@@ -72,6 +77,7 @@
 
   (#%define v:lsl-id e:lsl-expr)
   #:binding (export v)
+  
   e:lsl-expr)
 
  (nonterminal
@@ -169,7 +175,7 @@
 
  (host-interface/definitions
   (#%lsl e:lsl-form ...)
-  #:binding ((re-export e) ...)
+  #:binding (scope (import e) ...)
   ;; TODO: expand to explicit module begin; for some reason I get a massive error
   #'(begin (compile-lsl/lsl-form e) ...))
 

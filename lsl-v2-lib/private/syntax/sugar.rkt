@@ -5,6 +5,7 @@
                      racket/list
                      racket/function
                      syntax/parse
+                     syntax/struct
                      "grammar.rkt"))
 
 (provide (all-defined-out))
@@ -41,6 +42,13 @@
      #'(#%define x (#%lambda (args ...) e))]
     [(_ x:id e:expr)
      #'(#%define x e)]))
+
+(define-lsl-form-syntax define-struct
+  (syntax-parser
+    [(_ name:id (field:id ...))
+     #:with (_ ctor pred accessors ...)
+     (build-struct-names #'name (syntax->list #'(field ...)) #f #t)
+     #'(#%define-struct name (field ...) ctor pred accessors ...)]))
 
 (define-lsl-form-syntax define-contract
   (syntax-parser

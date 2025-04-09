@@ -16,6 +16,7 @@ GRAMMAR
 
 <lsl-def> := (define <lsl-id> <lsl-expr>)
            | (define (<lsl-id> <lsl-id> ...) <lsl-expr>)
+           | (define-struct <lsl-id> (<lsl-id> ...))
            | (define-contract <ctc-id> <ctc>)
            | (define-contract (<ctc-id> <id> ...) <ctc>)
            | (: <lsl-id> <ctc>)
@@ -66,8 +67,9 @@ GRAMMAR
 
 ;; Set of literals that belong in lsl-form position
 (define-literal-set lsl-literals
-  #:datum-literals (cond else and or if quote contract-generate #%let #%letrec #%local provide #%lambda
-                         #%lsl-app #%define : #%define-contract #%contract-lambda)
+  #:datum-literals (cond else and or if quote contract-generate #%let #%letrec #%local provide
+                         #%lambda #%lsl-app #%define #%define-struct : #%define-contract
+                         #%contract-lambda)
   ())
 
 ;; Set of literals that are found in contract position

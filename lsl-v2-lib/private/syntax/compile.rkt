@@ -4,6 +4,8 @@
 (require (for-syntax racket/base
                      racket/list
                      syntax/parse
+                     syntax/struct
+                     racket/syntax
                      "grammar.rkt")
          "../runtime/function.rkt"
          "../runtime/oneof.rkt"
@@ -14,6 +16,7 @@
          "../runtime/runtime-util.rkt"
          syntax-spec-v3
          racket/class
+         racket/struct
          racket/local
          racket/promise
          syntax/location)
@@ -33,6 +36,8 @@
     #:literal-sets (lsl-literals)
     [(_ (#%define v b))
      #'(compile-define v b)]
+    [(_ (#%define-struct name (field ...) ctor pred accessor ...))
+     #`(compile-define-struct name (field ...) ctor pred accessor ...)]
     [(_ (: v ctc))
      (do-attach-contract #'v #'ctc)
      #'(begin)]
@@ -64,6 +69,27 @@
       (raise-syntax-error (syntax->datum id) "value has previously attached contract" id))
 
     (void (contract-table-set! id ctc))))
+
+(define-syntax (compile-define-struct stx)
+  (syntax-parse stx
+    [(_ name (field ...) ctor pred accessor ...)
+     #:with prefix (gensym)
+     #:with name^ (format-id #'name "~a:~a" #'prefix #'name)
+     #:with (_ _ pred^ accessor^ ...)
+     (build-struct-names #'name^ (syntax->list #'(field ...)) #f #t)
+     #`(begin
+         (struct name^ (field ...)
+           #:transparent
+           #:constructor-name ctor
+           #:property prop:custom-print-quotable 'never
+           #:methods gen:custom-write
+           [(define write-proc
+              (make-constructor-style-printer
+               (lambda (obj) 'ctor)
+               (lambda (obj) (list (accessor^ obj) ...))))])
+         (define pred (procedure-rename pred^ 'pred))
+         (define accessor (procedure-rename accessor^ 'accessor))
+         ...)]))
 
 (define-syntax (compile-define-contract stx)
   (syntax-parse stx
