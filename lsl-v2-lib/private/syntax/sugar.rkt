@@ -56,6 +56,12 @@
         e:expr)
      #'(#%lambda (args ...) e)]))
 
+(define-lsl-form-syntax λ
+  (syntax-parser
+    [(_ (args:id ...)
+        e:expr)
+     #'(#%lambda (args ...) e)]))
+
 (define-lsl-form-syntax local
   (syntax-parser
     [(_ (d:local-defines ...)
