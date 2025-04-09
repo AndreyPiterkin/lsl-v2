@@ -6,12 +6,14 @@
                      syntax/parse
                      syntax/struct
                      racket/syntax
+                     syntax/parse/class/struct-id
                      "grammar.rkt")
          "../runtime/function.rkt"
          "../runtime/oneof.rkt"
          "../runtime/allof.rkt"
          "../runtime/list.rkt"
          "../runtime/lazy.rkt"
+         "../runtime/struct.rkt"
          "compile-util.rkt"
          "../runtime/runtime-util.rkt"
          syntax-spec-v3
@@ -81,12 +83,14 @@
          (struct name^ (field ...)
            #:transparent
            #:constructor-name ctor
+           #:name name
            #:property prop:custom-print-quotable 'never
            #:methods gen:custom-write
            [(define write-proc
               (make-constructor-style-printer
                (lambda (obj) 'ctor)
                (lambda (obj) (list (accessor^ obj) ...))))])
+         ;; TODO: hide arity errors
          (define pred (procedure-rename pred^ 'pred))
          (define accessor (procedure-rename accessor^ 'accessor))
          ...)]))
@@ -160,6 +164,8 @@
      #'(compile-list unexpanded e)]
     [(_ (#%Tuple e:expr ...))
      #'(compile-tuple unexpanded e ...)]
+    [(_ (#%Struct i:struct-id (e:expr ...)))
+     #'(compile-struct unexpanded i e ...)]
     [(_ (#%ctc-id i:id))
      #'(rt:validate-contract-id i #'i)]
     [(_ (#%contract-lambda (arg:id ...) c:expr))
@@ -239,6 +245,17 @@
      #'(new list%
             [stx #'unexpanded]
             [fixed? #t]
+            [contracts (list compiled-ctc ...)])]))
+
+(define-syntax compile-struct
+  (syntax-parser
+    [(_ unexpanded i:struct-id c ...)
+     (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
+     #'(new struct%
+            [stx #'unexpanded]
+            [ctor i.constructor-id]
+            [pred i.predicate-id]
+            [accessors (list i.accessor-id ...)]
             [contracts (list compiled-ctc ...)])]))
 
 ;; Compiles the given contract instantiation to a lazy contract, to avoid

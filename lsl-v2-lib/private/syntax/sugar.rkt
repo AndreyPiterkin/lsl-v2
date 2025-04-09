@@ -162,3 +162,9 @@
     [(_ c:expr ...)
      #'(#%Tuple c ...)]))
 
+(define-contract-syntax Struct
+  (syntax-parser
+    #:literal-sets (contract-literals)
+    [(_ s:id (c:expr ...))
+     #'(#%Struct s (c ...))]))
+

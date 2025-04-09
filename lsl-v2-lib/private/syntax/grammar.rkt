@@ -32,6 +32,7 @@ GRAMMAR
        | (AllOf <ctc> ...)
        | (List <ctc>)
        | (Tuple <ctc> ...)
+       | (Struct <struct-id> (<ctc> ...))
        | (<ctc-id> <ctc> ...) ;; parameterized contracts, i.e. (Tree X)
        | <ctc-id>
        | <lsl-expr>
@@ -81,5 +82,6 @@ GRAMMAR
                     #%OneOf
                     #%AllOf
                     #%List
-                    #%Tuple)
+                    #%Tuple
+                    #%Struct)
   ())
