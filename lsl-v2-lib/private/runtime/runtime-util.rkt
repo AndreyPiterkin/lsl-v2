@@ -31,7 +31,7 @@
                         "invalid immediate contract (must be a predicate)"
                         proc-stx)))
 
-(define (make-immediate ctc-unexpanded check-unexpanded check gen shrink features)
+(define (make-immediate ctc-unexpanded check-unexpanded check (gen #f) (shrink #f) (features '()))
   (validate-flat-contract! check check-unexpanded)
   (new immediate%
        [stx ctc-unexpanded]

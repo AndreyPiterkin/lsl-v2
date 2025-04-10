@@ -117,9 +117,7 @@
   (syntax-parser
     #:literal-sets (contract-literals)
     [(_ (check pred:expr))
-     #'(#%Immediate (check pred)
-                    (generate #f)
-                    (shrink #f))]
+     #'(#%Immediate (check pred))]
     [(_ (~alt (~optional (check pred:expr) #:defaults ((pred #'(lambda (_) #t))))
               (~optional (generate gen:expr) #:defaults ((gen #'#f)))
               (~optional (shrink shrk:expr) #:defaults ((shrk #'#f)))
@@ -136,7 +134,7 @@
         (result r:expr))
      #:with (x^ ...)
      (for/list ([x (in-syntax #'(x ...))])
-       (if (eq? (syntax-e x) '_) (gensym) x))
+       (if (eq? (syntax->datum x) '_) (gensym) x))
      #'(#%Function (arguments [x^ a] ...)
                    (result r))]))
 

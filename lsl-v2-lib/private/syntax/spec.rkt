@@ -147,6 +147,7 @@
 
   (#%ctc-app i:ctc-id args:ctc ...)
 
+  (#%Immediate ((~datum check) pred:lsl-expr))
   (#%Immediate ((~datum check) pred:lsl-expr)
                ((~datum generate) gen:lsl-expr)
                ((~datum shrink) shrk:lsl-expr)
@@ -172,7 +173,7 @@
       (tag-syntax-with-unexpanded #'(#%ctc-app i e ...) this-syntax))
 
   (~> e:expr
-      (tag-syntax-with-unexpanded #'(#%Immediate (check e) (generate #f) (shrink #f))
+      (tag-syntax-with-unexpanded #'(#%Immediate (check e))
                                   this-syntax)))
 
  (host-interface/definitions

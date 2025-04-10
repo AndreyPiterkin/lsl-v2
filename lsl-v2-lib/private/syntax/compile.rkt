@@ -148,6 +148,8 @@
        (get-unexpanded #'ctc)]))
   (syntax-parse stx
     #:literal-sets (contract-literals)
+    [(_ (#%Immediate (check pred:expr)))
+     #'(compile-immediate unexpanded pred)]
     [(_ (#%Immediate (check pred:expr)
                      (generate g:expr)
                      (shrink shr:expr)
@@ -179,6 +181,9 @@
 (define-syntax compile-immediate
   (syntax-parser
     #:literal-sets (contract-literals)
+    [(_ unexpanded pred)
+     (define/syntax-parse pred-unexpanded (get-unexpanded #'pred))
+     #'(rt:make-immediate #'unexpanded #'pred-unexpanded (compile-lsl/lsl-expr pred))]
     [(_ unexpanded
         pred
         g

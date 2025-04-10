@@ -41,14 +41,11 @@
 
 
 
-
-
-
 (: in-range (Function (arguments (min integer?)
-                                       (max (lambda (x)
-                                              (>= x min)))
-                                       (v integer?))
-                            (result boolean?)))
+                                 (max (lambda (x)
+                                        (>= x min)))
+                                 (v integer?))
+                      (result boolean?)))
 
 (define (in-range min max v)
   (<= min v max))
@@ -73,29 +70,17 @@
                              [domains (list (lambda ()
                                               (rt:make-immediate #'integer?
                                                                  #'integer?
-                                                                 integer?
-                                                                 #f
-                                                                 #f
-                                                                 '()))
+                                                                 integer?))
                                             (lambda (v) (rt:make-immediate
                                                          #'integer?
                                                          #'integer?
-                                                         integer?
-                                                         #f
-                                                         #f
-                                                         '()))
+                                                         integer?))
                                             (lambda (v min)
                                               (rt:make-immediate #'(lambda (x) (>= x min))
                                                                  #'(lambda (x) (>= x min))
-                                                                 (lambda (x) (>= x min))
-                                                                 #f
-                                                                 #f
-                                                                 '())))]
+                                                                 (lambda (x) (>= x min)))))]
                              [codomain (lambda (v min max) (rt:make-immediate #'boolean?
                                                                               #'boolean?
-                                                                              boolean?
-                                                                              #f
-                                                                              #f
-                                                                              '()))])))
+                                                                              boolean?))])))
 
-  (#%app in-range 6 5 3))
+  (in-range 6 5 3))
