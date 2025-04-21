@@ -1,4 +1,4 @@
-# LSL-V2: Logical Student Language V2 [![Scribble][docs-badge]][docs]
+# LSL-V2: Logical Student Language V2 
 
 The Logical Student Language is a simple extension to ISL+ that allows students
 to practice writing formal specifications.
@@ -24,5 +24,4 @@ example programs.
 
 Check out the repo and run `raco pkg install --auto lsl-v2-lib/ lsl-v2/` to install the language.
 
-[docs-badge]: https://img.shields.io/badge/Docs-Scribble-blue.svg
-[docs]: https://docs.racket-lang.org/lsl/
+Access the docs with `raco docs lsl-v2`
