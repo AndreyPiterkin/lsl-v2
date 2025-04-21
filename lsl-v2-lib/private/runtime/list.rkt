@@ -42,5 +42,5 @@
       (guard-ctor
        (lambda (val neg)
          (unless guards
-           (contract-error this stx val pos))
+           (send this contract-error stx val pos))
          (map (lambda (guard elem) (guard elem neg)) guards val))))))

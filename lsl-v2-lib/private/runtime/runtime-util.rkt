@@ -35,6 +35,7 @@
   (validate-flat-contract! check check-unexpanded)
   (new immediate%
        [stx ctc-unexpanded]
+       [env (environment)]
        [checker check]
        [generator gen]
        [shrinker shrink]

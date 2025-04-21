@@ -11,8 +11,10 @@
 ;  - (make-node [Tree X] [Tree X])
 
 
-(define-contract (Tree X) (OneOf (Leaf X)
-                                 (Node (Tree X) (Tree X))))
+(define-contract (Tree X)
+  (OneOf
+   (Leaf X)
+   (Node (Tree X) (Tree X))))
 
 
 
@@ -41,16 +43,16 @@
 
 
 
-(: in-range (Function (arguments (min integer?)
-                                 (max (lambda (x)
+(: in-range (Function (arguments (max (lambda (x)
                                         (>= x min)))
+                                 (min integer?)
                                  (v integer?))
                       (result boolean?)))
 
-(define (in-range min max v)
+(define (in-range max min v)
   (<= min v max))
 
-#;(in-range 6 5 3)
+(in-range 5 6 3)
 
 #;
 (begin

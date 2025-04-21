@@ -4,6 +4,7 @@
          racket/string
          racket/format
          racket/match
+         racket/function
          racket/syntax-srcloc
          errortrace/errortrace-key)
 
@@ -15,7 +16,7 @@
          blame->polarity
          (struct-out exn:fail:lsl:contract)
          unimplemented-error!
-         contract-error)
+         environment)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; parameters
@@ -40,16 +41,28 @@
 
 ;; Contract Syntax Any Blame -> Void
 ;; Raises a contract error for the given offending value and its attached contract and blame
-(define (contract-error _ctc stx val blm
-                        #:expected [expected (syntax->datum stx)]
-                        #:given [given (~v val)])
+;; with a hash-table environment of bindings
+(define (raise-contract-error _ctc stx val blm
+                              #:expected [expected (syntax->datum stx)]
+                              #:given [given (~v val)]
+                              #:environment env)
   (define error-msg
     (match blm
       [(blame name path)
        (define polarity (blame->polarity blm))
-       (format BLM-CTC-FMT name expected given path polarity)]
+       (define env^ (and env (not (hash-empty? env)) (format-environment env)))
+       (if env^
+           (format BLM-CTC-ENV-FMT name expected env^ given path polarity)
+           (format BLM-CTC-FMT name expected given path polarity))]
       [_ (format UNK-CTC-FMT expected given)]))
   (custom-error stx error-msg))
+
+;; [Hash Symbol Any] -> String
+(define (format-environment env)
+  (define string-values (map (curry format "~a: ~a") (hash-keys env) (hash-values env)))
+  (string-append "("
+                 (string-join string-values ", ")
+                 ")"))
 
 ;; ContractSyntax String -> Void
 ;; Raises an error with the given syntax used for source location info and the given message.
@@ -73,6 +86,14 @@
      "blaming: ~a (as ~a)")
    "\n  "))
 
+(define BLM-CTC-ENV-FMT
+  (string-join
+   '("~a: contract violation"
+     "expected: ~a with ~a"
+     "given: ~a"
+     "blaming: ~a (as ~a)")
+   "\n  "))
+
 (define UNK-CTC-FMT
   (string-join
    '("contract violation"
@@ -86,6 +107,8 @@
 (define contract%
   (class object%
     (super-new)
+    (init-field (env #f))
+    
     (define/public (protect val pos-blame)
       (unimplemented-error! 'protect))
 
@@ -100,7 +123,15 @@
       (unimplemented-error! 'interact))
 
     (define/public (describe val)
-      (unimplemented-error! 'describe))))
+      (unimplemented-error! 'describe))
+
+    (define/public-final (contract-error stx val blm
+                                         #:expected [expected (syntax->datum stx)]
+                                         #:given [given (~v val)])
+      (raise-contract-error this stx val blm
+                            #:expected expected
+                            #:given given
+                            #:environment env))))
          
 (struct blame (name path))
 (struct positive-blame blame ())
@@ -108,3 +139,5 @@
 
 (define (blame->polarity blm)
   (if (positive-blame? blm) "server" "client"))
+
+(define environment (make-parameter #f))

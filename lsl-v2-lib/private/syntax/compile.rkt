@@ -16,6 +16,7 @@
          "../runtime/struct.rkt"
          "compile-util.rkt"
          "../runtime/runtime-util.rkt"
+         "../runtime/contract-common.rkt"
          syntax-spec-v3
          racket/class
          racket/struct
@@ -213,9 +214,27 @@
      (define/syntax-parse r^ #'(compile-contract r))
      #'(new function%
             [stx #'unexpanded]
+            [env (environment)]
             [domain-order (list (#%datum . i) ...)]
-            [domains (list (lambda* (x^^ ...) c^^) ...)]
-            [codomain (lambda* (x^ ...) r^)])]))
+            [domains (list
+                      (lambda* (x^^ ...)
+                               (parameterize ([environment
+                                               (for/hash ([id (list 'x^^ ...)]
+                                                          [val (list x^^ ...)]
+                                                          ;; TODO: this is unfortunate
+                                                          ;; but gets around -> desugaring
+                                                          #:when (symbol-interned? id))
+                                                 (values id val))])
+                                 c^^)) ...)]
+            [codomain (lambda* (x^ ...)
+                               (parameterize ([environment
+                                               (for/hash ([id (list 'x^ ...)]
+                                                          [val (list x^ ...)]
+                                                          #:when (symbol-interned? id))
+                                                 ;; TODO: this is unfortunate
+                                                 ;; but gets around -> desugaring
+                                                 (values id val))])
+                                 r^))])]))
 
 (define-syntax compile-oneof
   (syntax-parser
@@ -223,6 +242,7 @@
      (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
      #'(new oneof%
             [stx #'unexpanded]
+            [env (environment)]
             [disjuncts (list compiled-ctc ...)])]))
 
 ;; Compiles the given allof contract
@@ -232,6 +252,7 @@
      (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
      #'(new allof%
             [stx #'unexpanded]
+            [env (environment)]
             [conjuncts (list compiled-ctc ...)])]))
 
 ;; Compiles the given list contract
@@ -241,6 +262,7 @@
      (define/syntax-parse compiled-ctc #'(compile-contract c))
      #'(new list%
             [stx #'unexpanded]
+            [env (environment)]
             [fixed? #f]
             [contracts (list compiled-ctc)])]))
 
@@ -251,6 +273,7 @@
      (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
      #'(new list%
             [stx #'unexpanded]
+            [env (environment)]
             [fixed? #t]
             [contracts (list compiled-ctc ...)])]))
 
@@ -260,6 +283,7 @@
      (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
      #'(new struct%
             [stx #'unexpanded]
+            [env (environment)]
             [ctor i.constructor-id]
             [pred i.predicate-id]
             [accessors (list i.accessor-id ...)]
@@ -275,4 +299,5 @@
      (define/syntax-parse (compiled-ctc ...) #'((compile-contract c) ...))
      #'(new lazy%
             [stx #'unexpanded]
+            [env (environment)]
             [promise (delay (#%app i compiled-ctc ...))])]))

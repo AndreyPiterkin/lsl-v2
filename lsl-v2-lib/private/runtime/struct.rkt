@@ -33,7 +33,7 @@
           (failed-guard
            (lambda (val neg)
              (unless guards
-               (contract-error this stx val pos))
+               (send this contract-error stx val pos))
              (for ([guard (in-list guards)]
                    [field (in-list struct-as-list)])
                (guard field neg))))))))

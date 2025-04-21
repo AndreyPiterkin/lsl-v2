@@ -20,7 +20,7 @@
              val))
           (failed-guard 
            (λ (val neg)
-             (contract-error this stx val pos)))))
+             (send this contract-error stx val pos)))))
 
     (define/override (generate fuel)
       (cond

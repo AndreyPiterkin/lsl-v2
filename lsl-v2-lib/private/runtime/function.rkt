@@ -23,9 +23,9 @@
              (define (contract-apply . args)
                (define n-args (length args))
                (unless (= n-args arity)
-                 (contract-error this stx val pos
-                                 #:expected (args-error arity)
-                                 #:given (args-error n-args)))
+                 (send this contract-error stx val pos
+                       #:expected (args-error arity)
+                       #:given (args-error n-args)))
 
                (define args^
                  (for/fold ([guarded-args '()])
@@ -52,10 +52,10 @@
           (failed-guard
            (lambda (val neg)
              (if val-proc?
-                 (contract-error this stx val pos
-                                 #:expected (format ARITY-FMT arity)
-                                 #:given (format ARITY-FMT (procedure-arity val)))
-                 (contract-error this stx val pos))))))))
+                 (send this contract-error stx val pos
+                       #:expected (format ARITY-FMT arity)
+                       #:given (format ARITY-FMT (procedure-arity val)))
+                 (send this contract-error stx val pos))))))))
 
 (define ARITY-FMT "~a-arity function")
 

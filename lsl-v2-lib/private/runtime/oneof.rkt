@@ -28,4 +28,4 @@
           maybe-guard
           (failed-guard
           (lambda (val neg)
-            (contract-error this stx val pos)))))))
+            (send this contract-error stx val pos)))))))
