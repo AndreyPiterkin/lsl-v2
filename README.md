@@ -19,9 +19,11 @@ to simplify the implementation, as well as improving the static checks.
 
 Look inside [lsl-v2/examples/](https://github.com/AndreyPiterkin/lsl-v2/tree/main/examples) for
 example programs.
+For a high-level overview of the internal project structure, see [lsl-v2-lib/README.md](https://github.com/AndreyPiterkin/lsl-v2/blob/main/lsl-v2-lib/README.md)
 
 ## Installing and Running
 
 Check out the repo and run `raco pkg install --auto lsl-v2-lib/ lsl-v2/` to install the language.
 
-Access the docs with `raco docs lsl-v2`
+Access the docs by first running `raco setup --doc-index --pkgs lsl-v2` and then running 
+`raco docs lsl-v2`.
