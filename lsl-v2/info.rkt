@@ -20,5 +20,5 @@
     "scribble-lib"))
 
 (define license 'MIT)
-(define scribblings '(("docs/main.scrbl" () (experimental) "lsl-v2")))
+(define scribblings '(("scribblings/main.scrbl" () (experimental) "lsl-v2")))
 
