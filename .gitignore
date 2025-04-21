@@ -1,7 +1,8 @@
-docs/*.css
-docs/*.js
-docs/*.html
-docs/*.scrbl~
+lsl-v2/**/*.css
+lsl-v2/**/*.js
+lsl-v2/**/*.html
+lsl-v2/**/*.scrbl~
+lsl-v2/**/*.pdf
 
 **/.DS_Store
 **/*.rkt~

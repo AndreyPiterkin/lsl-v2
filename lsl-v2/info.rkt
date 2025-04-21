@@ -18,3 +18,7 @@
     "racket-doc"
     "sandbox-lib"
     "scribble-lib"))
+
+(define license 'MIT)
+(define scribblings '(("docs/main.scrbl" () (experimental) "lsl-v2")))
+
